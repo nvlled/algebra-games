@@ -1,0 +1,17 @@
+
+games:
+drop
+pair
+2048
+puzzle de pon
+checker/chess
+
+
+primary goal:
+make at least 5 games
+that are 20% done, for purposes showing something
+
+// TODO: 
+1. animate sprites
+2. grid click handlers
+3.

@@ -1,0 +1,30 @@
+{
+  "name": "pixi-webpack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "brfs": "^1.4.3",
+    "json": "^9.0.6",
+    "pixi.js": "^4.5.4"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^4.0.1",
+    "file-loader": "^0.11.2",
+    "html-webpack-plugin": "^2.29.0",
+    "identity-loader": "^1.0.1",
+    "json-loader": "^0.5.7",
+    "pixi-tiledmap": "^1.7.3",
+    "tiled-to-pixi": "^1.0.1",
+    "transform-loader": "^0.2.4",
+    "ts-loader": "^2.3.3",
+    "typescript": "*",
+    "url-loader": "^0.5.9",
+    "webpack": "^3.4.1"
+  }
+}

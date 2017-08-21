@@ -1,0 +1,267 @@
+let Util = {};
+
+Util.extract = function(obj, ...keys) {
+    return keys.map(k => obj[k]);
+}
+
+// underscore's extend
+Util.extend = function(obj, ...sources) {
+    sources.forEach(source => {
+        let descriptor, prop;
+        if (source) {
+            for (prop in source) {
+                descriptor = Object.getOwnPropertyDescriptor(source, prop);
+                Object.defineProperty(obj, prop, descriptor);
+            }
+        }
+    });
+    return obj;
+}
+//Util.extend = Object.assign;
+
+Util.wrap = function(obj, ext) {
+    let m = Util.extend({}, ext);
+    Object.setPrototypeOf(m, obj);
+    return m;
+}
+
+Util.wrapAll = function(obj, ...exts) {
+    let m = {};
+    for (let ext of exts) {
+        Util.extend({}, ext);
+    }
+    Object.setPrototypeOf(m, obj);
+    return m;
+}
+
+Util.markWrap = function(fn) {
+    fn.__wrappable__ = true;
+    return fn;
+}
+
+Util.contextualize = function(fn) {
+    return function(...args) {
+        return fn(this, ...args);
+    }
+}
+
+//function injectProto(pu, newProto) {
+//    let proto = pu.__proto__;
+//    pu.__proto__ = extend({}, newProto);
+//    pu.__proto__.__proto__ = proto; // puprrroto
+//    return pu;
+//}
+
+//function prototypify__(mod) {
+//    let mod_ = {};
+//    Object.keys(mod).forEach(function(k) {
+//        let prop = mod[k];
+//        mod_[k] = contextualize(prop);
+//    });
+//    return mod_;
+//}
+
+Util.markGetterSetter = function(fn) {
+    fn.___whatareyoudoingahaha___ = "html";
+    return fn;
+}
+Util.isGetterSetter = function(fn) {
+    return !! fn.___whatareyoudoingahaha___;
+}
+
+Util.prototypify = function(mod, shouldWrap = _=>true) {
+    let mod_ = {};
+    Object.keys(mod).forEach(function(k) {
+        let prop = mod[k];
+        if (typeof prop != "function") {
+            mod_[k] = prop;
+            return;
+        }
+        if (shouldWrap(k, prop)) {
+            let prop_ = Util.contextualize(prop);
+            if (Util.isGetterSetter(prop)) {
+                Object.defineProperty(mod_, k, {
+                    get: prop_,
+                    set: prop_,
+                    enumerable: true,
+                });
+            } else {
+                mod_[k] = prop_;
+            }
+        }
+    });
+    return mod_;
+}
+
+Util.compose = function(...fs) {
+    return function(...args) {
+        let result = args
+        for (let f of fs) {
+            if (typeof f == "function")
+                result = f(...result);
+        }
+        return result;
+    }
+}
+
+Util.partial = function(fn, obj) {
+    return function(...args) {
+        return fn(obj, ...args);
+    }
+}
+
+Util.prox = function(obj, proto) {
+    let proxy = new Proxy(
+        obj, 
+        {
+            get(obj, name) {
+                let desc = Object.getOwnPropertyDescriptor(proto, name);
+                if (desc && desc.get) 
+                    return desc.get.call(obj);
+
+                let val = obj[name]
+                if (val != null)
+                    return val;
+                let prop = proto[name];
+                return prop;
+            },
+            set(obj, name, val) {
+                let desc = Object.getOwnPropertyDescriptor(proto, name);
+                if (desc && desc.set)
+                    desc.set.call(obj, val);
+                else
+                    obj[name]  = val;
+                return true;
+            },
+        }
+    );
+    proxy.__target = obj;
+    proxy.__proto = proto;
+    return proxy;
+}
+Util.prox2 = function(obj, proto) {
+    return new Proxy(
+        obj, 
+        {
+            get(obj, name) {
+                let val = obj[name]
+                if (val != null)
+                    return val;
+                let prop = proto[name];
+                if (typeof prop == "function")
+                    return Util.partial(prop, obj);
+            },
+        }
+    );
+}
+
+Util.remove = function(array, obj) {
+    let i = array.indexOf(obj);
+    if (i < 0)
+        return;
+    array.splice(i, 1);
+}
+
+Util.range = function(n) {
+    let xs = [];
+    for (let i = 0; i < n; i++)
+        xs.push(i);
+    return xs;
+}
+
+Util.or = function(...args) {
+    for (let x of args)
+        if (x != null)
+            return x;
+    return null;
+}
+
+Util.constructor = function(module) {
+    if (typeof module.create != "function")
+        throw "invalid module, need create function";
+    if (! module.Proto)
+        module.Proto = Util.prototypify(module);
+    return function(...args) {
+        return Util.wrap(module.create(...args), module.Proto);
+    }
+}
+
+Util.rightpad = function(str, n, ch) {
+    if (str.length > n)
+        return str;
+    return str + ch.repeat(n-str.length);
+}
+
+Util.randomIndex = function(array) {
+    return Math.floor(Math.random()*array.length);
+}
+
+Util.randomSelect = function(array, exclude={}, fail=true) {
+    let i = 0;
+    while (i < array.length*2) {
+        let idx = Util.randomIndex(array);
+        let x = array[idx];
+        if (!exclude[x] && !exclude[idx])
+            return [x, idx];
+        i++;
+    }
+    if (fail)
+        throw "failed to select a random element";
+    return [];
+}
+
+Util.randomPair = function(keys, vals) {
+    let pairs = {};
+    let exclude = {};
+    for (let k of keys) {
+        let [val, idx]  = Util.randomSelect(vals, exclude);
+        pairs[k] = val;
+        exclude[idx] = true;
+    }
+    return pairs;
+}
+
+Util.parseQueryParams = function(paramStr) {
+    let pairs = window.location.search
+        .slice(1)
+        .split("&")
+        .map(e => e.split("="));
+
+    let params = {};
+    for (let [k, v] of pairs) {
+        params[k] = v;
+    }
+    return params;
+}
+
+function fluent(module, obj) {
+    return new Proxy(
+            obj,
+            {
+                get(obj, k, receiver) {
+                    let f = module[k];
+                    if (typeof f !== "function")
+                        return f;
+                    return function(...args) {
+                        f(obj, ...args);
+                        return receiver;
+                    }
+                },
+            });
+}
+
+function leftBind(module, obj) {
+    return new Proxy(
+            obj,
+            {
+                get(obj, k, receiver) {
+                    let f = module[k];
+                    return function(...args) {
+                        return f(obj, ...args);
+                    }
+                },
+            });
+}
+
+module.exports = Util; 
+
