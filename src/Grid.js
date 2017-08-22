@@ -15,6 +15,8 @@ function indexToXY({i, cols}) {
     }
 }
 
+let POS = Symbol("Tile Pos");
+
 let M = {
     new(...args) {
         //return Util.prox(M.create(...args), M.Proto);
@@ -38,6 +40,15 @@ let M = {
         stretch=1.0,
         speed=300,
         alpha,
+        interactive=false,
+        highlight=0xdd0000,
+        
+        onTileDown=({x, y})=>console.log("tile down: ", x, y),
+        onTileUp=({x, y})=>console.log("tile up: ", x, y),
+        onTileDrag=({x, y}, {x:x_, y:y_})=>console.log("tile drag: ", x, y, "->", x_, y_),
+        onTileDragging=({x, y}, {x:x_, y:y_})=>console.log("tile dragging: ", x, y, "->", x_, y_),
+        onTileClick=({x, y})=>console.log("tile click: ", x, y),
+
     }={}) {
         let {Container, Sprite, Rectangle} = PIXI;
         if (!container)
@@ -64,9 +75,11 @@ let M = {
                 sprite.height = tileHeight;
                 sprite.x = (j * (tileWidth+tileSpace));
                 sprite.y = (i * (tileHeight+tileSpace));
+                sprite[POS] = {x: j, y: i};
                 sprite.alpha = alpha;
                 //sprite.anchor.set(0.5);
                 tiles.push(sprite);
+
             }
         }
 
@@ -75,6 +88,11 @@ let M = {
         //container.x = x;
         //container.y = y;
         Object.assign(container, {
+            onTileClick,
+            onTileDrag,
+            onTileDragging,
+            onTileDown,
+            onTileUp,
             x, y,
             speed,
             cols, rows, 
@@ -89,6 +107,122 @@ let M = {
             actions: [],
         });
         return container;
+    },
+
+    getTilePos(self, tile) {
+        if (tile)
+            return tile[POS];
+    },
+
+    setInteractive(self) {
+        let start = null;
+        let end = null;
+
+        let onDown = function(e){
+            console.log("X");
+            let tile = this;
+            start = tile[POS];
+            end = start;
+            self.onTileDown(start);
+        }
+        let onUp = function(e) {
+            console.log("Y");
+            self.onTileUp(start, end);
+
+            if (!start && !end)
+                return;
+            if (Vec.new(start).equals(end)) {
+                self.onTileClick(start);
+            } else {
+                self.onTileDrag(start, end);
+            }
+            start = end = null;
+        }
+        let onOver = function(e) {
+            console.log("Z");
+            //this.tint = 0xaaffff;
+            if (!start)
+                return;
+            end = this[POS];
+            self.onTileDragging(start, end);
+        }
+        let onOut = function(e) {
+            console.log("W");
+            //this.tint = 0xffffff;
+        }
+
+        let {rows, cols} = self;
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                let tile = M.tileAt(self, {x, y});
+                tile.interactive = true;
+                tile.on("mousedown", onDown);
+                tile.on("mouseover", onOver);
+                tile.on("mouseout", onOut);
+                tile.on("mouseup",   onUp);
+                //tile.on("mouseupoutside",   onUp);
+            }
+        }
+    },
+
+    getRow(self, y, withNil=true) {
+        let elems = [];
+        for (let x = 0; x < self.cols; x++) {
+            let sprite = M.spriteAt(self, {x, y});
+            if (sprite || withNil) {
+                elems.push({x, y});
+            }
+        }
+        return elems;
+    },
+
+    getColumn(self, x, withNil=true) {
+        let elems = [];
+        for (let y = 0; y < self.rows; y++) {
+            let sprite = M.spriteAt(self, {x, y});
+            if (sprite || withNil) {
+                elems.push({x, y});
+            }
+        }
+        return elems;
+    },
+
+    clearHighlights(self, points) {
+        let {rows, cols} = self;
+        if (points) {
+            points.forEach(p => {
+                let tile = M.tileAt(self, p);
+                tile.tint = 0xffffff;
+            });
+        } else {
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    let tile = M.tileAt(self, {x, y});
+                    tile.tint = 0xffffff;
+                }
+            }
+        }
+    },
+
+    hightlightTiles(self, points, highlight=0x00aaaa) {
+        let {rows, cols} = self;
+        for (let p of points) {
+            let tile = M.tileAt(self, p);
+            tile.tint = highlight;
+        }
+    },
+
+    hightlightRange(self, start, end, highlight=0x00aaaa) {
+        start = Vec.new(start);
+        end = Vec.new(end);
+        if (end.lessThan(start))
+            [start, end] = [end, start];
+        for (let y = start.y; y <= end.y; y++) {
+            for (let x = start.x; x <= end.x; x++) {
+                let tile = M.tileAt(self, {x, y});
+                tile.tint = highlight;
+            }
+        }
     },
 
     eachRowIndex(self, fn) {
@@ -179,7 +313,6 @@ let M = {
         sprites[idx] = sprite;
         if (!sprite)
             return;
-
 
         //if (self.gameArray.outbounds({x, y}))
         //    return;
@@ -391,11 +524,11 @@ let M = {
         let getpos = M.getSpritePos;
         let pos = getpos(self, {sprite, x: src.x, y: src.y});
         let pos_ = getpos(self, {sprite, x: dest.x, y: dest.y});
-        return Waypoint.move(sprite, {pos: pos_, speed: self.speed})
-            .then(_=> {
-                //M.removeSprite(self, src);
-                //M.setSprite(self, {sprite, x: dest.x, y: dest.y});
-            });
+        return Waypoint.move(sprite, {pos: pos_, speed: self.speed});
+            //.then(_=> {
+            //    //M.removeSprite(self, src);
+            //    //M.setSprite(self, {sprite, x: dest.x, y: dest.y});
+            //});
     },
 
     placeSprite(self, {sprite, dest}) {

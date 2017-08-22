@@ -234,6 +234,28 @@ Util.parseQueryParams = function(paramStr) {
     return params;
 }
 
+Util.nextItem = function(array, x, wrap=false) {
+    let i = array.indexOf(x);
+    if (i < 0)
+        return null;
+    i++;
+    if (i < array.length)
+        return array[i];
+    if (wrap)
+        return array[0];
+    return null;
+}
+
+// lazy shuffling
+Util.shuffle = function(array) {
+    for (let i = 0; i < array.length; i++) {
+        let a = Util.randomIndex(array);
+        let b = Util.randomIndex(array);
+        let [x,y] = [array[a], array[b]];
+        [array[a], array[b]] = [x, y];
+    }
+}
+
 function fluent(module, obj) {
     return new Proxy(
             obj,

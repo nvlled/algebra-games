@@ -11,20 +11,24 @@ let PIXI = require("pixi.js");
 let M = {
     create({
         algebra,
-        rows,
-        cols,
+        rows=4,
+        cols=4,
         tileSize,
         tileSpace,
         tileMap,
         x, y,
         speed=900,
-        stretch,
+        stretch=.8,
+        interactive,
+        alpha,
+
         onGameOver=()=>{},
     } = {}) {
         let grid = Grid.new({
             x, y, rows, cols, tileSize, tileSpace, tileMap,
-            speed, stretch,
+            speed, stretch, interactive, alpha,
         });
+        grid.setInteractive();
         
         let self = {
             grid,
@@ -36,78 +40,84 @@ let M = {
                 down: Keyboard(40),
             },
             ticker: new PIXI.ticker.Ticker(),
-            actions: [],
             initialized: false,
             releasing: false,
             running: false,
             timerId: null,
             lastDir: {x: 0, y: 0},
             actions: Actions.new({throttle: 350}),
+            fixed: {},
         };
 
         return self;
     },
 
     init(self) {
-        if (self.initialized)
-            return;
+        self.grid.onTileClick = ({x, y}) => {
+            let {grid} = self;
+            if (self.fixed[grid.gameArray.index({x, y})])
+                return;
 
-        let {up, down, left, right} = self.keys;
-        up.press    = () => M.moveUp(self);
-        down.press  = () => M.moveDown(self);
-        left.press  = () => M.moveLeft(self);
-        right.press = () => M.moveRight(self);
-        self.initialized = true;
+            let prevSprite = self.grid.spriteAt({x, y});
+            let alg = self.algebra;
+            let elem = null;
+            if (prevSprite) {
+                prevSprite.destroy();
+                self.grid.removeSprite({x, y});
+                let elem = alg.getElem(prevSprite);
+                elem = Util.nextItem(alg.getElems(), elem);
 
-        // TODO: should combine all combinable elements,
-        // not just the ones that moved
-        
-        self.actions.onPerform = async function(_) {
-            //let points = self.grid.gameArray.data;
-
-            //if (!points)
-                //return;
-            let promises = [];
-            let {cols, rows} = self.grid;
-            let spriteset = new WeakSet();
-            for (let y = 0; y < rows; y++) {
-                for (let x = 0; x < cols; x++) {
-                    let p = Vec.new({x, y});
-                    let p_ = Vec.new(p).add(self.lastDir);
-
-                    let sprite1 = self.grid.spriteAt(p);
-                    let sprite2 = self.grid.spriteAt(p_);
-
-                    if (!sprite1 || !sprite2 || 
-                            spriteset.has(sprite1) ||
-                            spriteset.has(sprite2)) {
-                        continue
-                    }
-
-                    //spriteset.add(sprite2);
-
-                    let sprite3 = self.algebra.applySprites(sprite1, sprite2);
-                    if (!sprite3) 
-                        continue;
-
-                    //promises.push(self.grid.move({src: p, dest: p_, force: true})
-                    await self.grid.move({src: p, dest: p_, force: true})
-                            .then(_=> {
-                                self.grid.removeSprite(p_);
-                                self.grid.removeSprite(p);
-                                sprite1.destroy();
-                                sprite2.destroy();
-                                self.grid.setSprite({sprite: sprite3, x: p_.x, y: p_.y});
-                            //}));
-                            });
+                if (elem) {
+                    let sprite = self.algebra.createSprite(elem);
+                    self.grid.setSprite({sprite, x, y});
+                    M.checkTiles(self, {x, y});
                 }
+            } else {
+                let sprite = self.algebra.createSprite(alg.getElems()[0]);
+                self.grid.setSprite({sprite, x, y});
+                M.checkTiles(self, {x, y});
             }
-            if (self.grid.isFull()) {
-                onGameOver();
-            }
-            M.randomize(self);
-            return Promise.all(promises);
+
         }
+
+        //self.grid.hightlightTiles([
+        //        {x: 0, y:0},
+        //        {x: 1, y:0},
+        //        {x: 0, y:1},
+        //], 0xff0000);
+        //self.grid.hightlightRange({x: 0, y: 2}, {x: 3, y: 2});
+    },
+
+    // TODO:
+    checkTiles(self, pos) {
+        let {grid} = self;
+        let sprite = self.grid.spriteAt(pos); 
+        if (!sprite)
+            return;
+        let row = grid.getRow(pos.y, false);
+        let col = grid.getColumn(pos.x, false);
+
+        grid.clearHighlights(row);
+        grid.clearHighlights(col);
+
+        let alg = self.algebra;
+        let elem = alg.getElem(sprite);
+        row = row.filter(pos_ => {
+            let sprite_ = grid.spriteAt(pos_);
+            //return elem == alg.getElem(sprite_) && sprite != sprite_;
+            return elem == alg.getElem(sprite_);
+
+        });
+        col = col.filter(pos_ => {
+            let sprite_ = grid.spriteAt(pos_);
+            return elem == alg.getElem(sprite_);
+
+        });
+        console.log(elem, row);
+        if (row.length > 1)
+            self.grid.hightlightTiles(row, 0xff0000); 
+        if (col.length > 1)
+            self.grid.hightlightTiles(col, 0xff0000); 
     },
 
     newGame(self) {
@@ -117,8 +127,8 @@ let M = {
 
     start(self) {
         M.init(self);
-        M.listenKeys(self);
-        self.actions.start();
+        //M.listenKeys(self);
+        //self.actions.start();
         self.randomize(5);
     },
 
@@ -147,13 +157,21 @@ let M = {
         return self.actions.add(_=> self.grid.dropVertical({dir: 1}));
     },
 
-    randomize(self, count=2) {
+    randomize(self) {
         let {algebra, grid} = self;
         let filled = {};
         let retries = 128;
-        let n;
+
+
+        let elems = algebra.getElems();
+        let count = elems.length;
+        Util.shuffle(elems);
+
+        self.fixed = {};
         for (n = 0; n < count; n++) {
-            let elem = algebra.randomElement();
+
+            let elem = elems[n];
+
             let sprite = algebra.createSprite(elem);
             let [_, i] = Util.randomSelect(grid.tiles, filled, false);
             if (i == null)
@@ -161,6 +179,7 @@ let M = {
 
             filled[i] = true;
             filled[elem] = true;
+            self.fixed[i] = true;
             let {x, y} = grid.toXY(i);
             if (self.grid.hasSprite({x, y})) {
                 n--;

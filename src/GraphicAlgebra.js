@@ -25,9 +25,23 @@ let M = {
         return self.algebra.randomElement();
     },
 
+    randomSprite(self) {
+        return M.createSprite(self, M.randomElement(self));
+    },
+
     getTexture(self, elem) {
         let {textures} = self;
         return textures[elem];
+    },
+
+    getElem(self, sprite) {
+        if (!sprite)
+            return null;
+        return sprite[ELEM];
+    },
+
+    getElems(self) {
+        return self.algebra.elems;
     },
 
     getSize(self) {

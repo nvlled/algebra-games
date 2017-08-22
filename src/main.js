@@ -21,12 +21,19 @@ let TextureSet = require("src/TextureSet");
 
 let Drop = require("src/Drop");
 let Ten24 = require("src/Ten24");
+let Sudoku = require("src/Sudoku");
+let PairSwap = require("src/PairSwap");
 
 function setup() {
     PIXI.loader
         .add("bg1", "images/cyberglow.png")
         .add("bg2", "images/starfield2.jpg")
+        .add("bg3", "images/tron.png")
+        .add("bg4", "images/backdrop.png")
         .add("cell1", "images/Ground/ground_04.png")
+        .add("cell2", "images/Ground/ground_01.png")
+        .add("cell3", "images/Ground/ground_02.png")
+        .add("cell4", "images/Ground/ground_05.png")
 
         .add("people", "images/people.png")
         .add("equals", "images/equals.png")
@@ -38,16 +45,6 @@ function setup() {
 }
 
 function main() {
-    let params = Util.parseQueryParams(window.location.search);
-    switch (params["game"]) {
-        case "drop": dropGame();   break;
-        case "ten24": ten24Game(); break;
-    }
-    document.querySelector(".game-title").textContent = 
-        "game: " + params["game"];
-}
-
-function ten24Game() {
     let {
         Sprite,
         Container,
@@ -55,9 +52,150 @@ function ten24Game() {
     } = PIXI;
 
     let renderer = PIXI.autoDetectRenderer(1000, 800);
+    renderer.view.onmousedown = e => e.preventDefault();
     document.body.querySelector("div.game").appendChild(renderer.view);
     let gameStage = new Container();
     PIXI.ticker.shared.add(_=> renderer.render(gameStage));
+
+    let tset = TextureSet.new({
+        image: resources["people"].texture,
+        tileWidth: 48,
+        tileHeight: 51,
+    });
+    let algebra = Algebra.new({
+        identity: 'a',
+        table: [
+            ['a', 'a', 'b'],
+            ['b', 'c', 'a'],
+            ['c', 'c', 'e'],
+            ['d', 'e', 'c'],
+        ],
+    });
+    let galge = GraphicAlgebra.new({
+        algebra,
+        textures: Object.assign(
+            Util.randomPair(algebra.elems, tset.textures),
+            { equals: resources["equals"].texture }
+        )
+    });
+
+    let gameState = {renderer, gameStage, algebra: galge};
+
+    let params = Util.parseQueryParams(window.location.search);
+    // let game = null
+    switch (params["game"]) {
+        case "drop":   dropGame(gameState);   break;
+        case "ten24":  ten24Game(gameState); break;
+        case "sudoku": sudokuGame(gameState); break;
+        case "pairswap": pairSwapGame(gameState); break;
+    }
+    // game.start()
+    document.querySelector(".game-title").textContent = 
+        "game: " + params["game"];
+}
+
+function pairSwapGame({renderer, gameStage, algebra}) {
+    let {
+        Sprite,
+        Container,
+        loader: {resources},
+    } = PIXI;
+
+    let game = PairSwap.new({
+        interactive: true,
+        algebra,
+        x: 50, y: 10,
+        tileSize: 100,
+        tileSpace: 5,
+        alpha: 0.95,
+        tileMap: _=> resources["cell4"].texture,
+    });
+    game.start();
+
+    game.grid.y = renderer.height/2 - game.grid.height/2;
+    game.grid.x = renderer.width/2 - game.grid.width/2;
+
+    var bg = new PIXI.Sprite(resources["bg4"].texture);
+    bg.width = renderer.width;
+    bg.height = renderer.height;
+
+    gameStage.addChild(bg);
+    gameStage.addChild(game.grid);
+}
+
+function sudokuGame({renderer, gameStage}) {
+    let {
+        Sprite,
+        Container,
+        loader: {resources},
+    } = PIXI;
+
+    let tset = TextureSet.new({
+        image: resources["people"].texture,
+        tileWidth: 48,
+        tileHeight: 51,
+    });
+
+    let algebra = Algebra.new({
+        identity: 'a',
+        table: [
+            ['a', 'a', 'b'],
+            ['b', 'c', 'a'],
+            ['c', 'c', 'e'],
+            ['d', 'e', 'c'],
+        ],
+    });
+    let galge = GraphicAlgebra.new({
+        algebra,
+        textures: Object.assign(
+            Util.randomPair(algebra.elems, tset.textures),
+            { equals: resources["equals"].texture }
+        )
+    });
+    //let alt = GraphicTable.new(galge, {
+    //    x: 50, y: 10,
+    //    tileSize: 32,
+    //    tileSpace: 0.1,
+    //    stretch: 0.9,
+    //    //equals: resources["equals"].texture,
+    //    tileMap: function(x, y, id) {
+    //        return null;
+    //    },
+    //});
+    //alt.grid.visible = false;
+    //alt.grid.width = 0;
+    let game = Sudoku.new({
+        interactive: true,
+        algebra: galge,
+        x: 50, y: 10,
+        //rows: 20, cols: 10,
+        tileSize: 100,
+        tileSpace: 5,
+        alpha: 0.8,
+        tileMap: _=> resources["cell2"].texture,
+    });
+    game.start();
+
+    game.grid.y = renderer.height/2 - game.grid.height/2;
+    game.grid.x = renderer.width/2 - game.grid.width/2;
+    //alt.grid.x = game.grid.x + game.grid.width;
+    //alt.grid.y = game.grid.y;
+
+    var bg = new PIXI.Sprite(resources["bg3"].texture);
+    bg.width = renderer.width;
+    bg.height = renderer.height;
+
+    gameStage.addChild(bg);
+    //gameStage.addChild(alt.grid);
+    gameStage.addChild(game.grid);
+}
+
+function ten24Game({renderer, gameStage}) {
+    let {
+        Sprite,
+        Container,
+        loader: {resources},
+    } = PIXI;
 
     let tset = TextureSet.new({
         image: resources["people"].texture,
@@ -140,24 +278,18 @@ function ten24Game() {
     gameStage.addChild(button);
 }
 
-function dropGame() {
+function dropGame({renderer, gameStage}) {
     let {
         Sprite,
         Container,
         loader: {resources},
     } = PIXI;
 
-    let renderer = PIXI.autoDetectRenderer(1000, 800);
-    document.body.querySelector("div.game").appendChild(renderer.view);
-    let gameStage = new Container();
-    PIXI.ticker.shared.add(_=> renderer.render(gameStage));
-
     let tset = TextureSet.new({
         image: resources["people"].texture,
         tileWidth: 48,
         tileHeight: 51,
     });
-
 
     let algebra = Algebra.new({
         identity: 'a',
@@ -185,7 +317,7 @@ function dropGame() {
             return null;
         },
     });
-    let drop = Drop.new({
+    let game = Drop.new({
         algebra: galge,
         x: 50, y: 10,
         rows: 20, cols: 10,
@@ -194,12 +326,12 @@ function dropGame() {
         alpha: 0.8,
         tileMap: _=> resources["metile"].texture,
     });
-    drop.start();
+    game.start();
 
-    drop.grid.y = renderer.height/2 - drop.grid.height/2;
-    drop.grid.x = renderer.width/2 - drop.grid.width/2 - alt.grid.width/2;
-    alt.grid.x = drop.grid.x + drop.grid.width;
-    alt.grid.y = drop.grid.y;
+    game.grid.y = renderer.height/2 - game.grid.height/2;
+    game.grid.x = renderer.width/2 - game.grid.width/2 - alt.grid.width/2;
+    alt.grid.x = game.grid.x + game.grid.width;
+    alt.grid.y = game.grid.y;
 
     var bg = new PIXI.Sprite(resources["bg1"].texture);
     bg.width = renderer.width;
@@ -207,7 +339,7 @@ function dropGame() {
 
     gameStage.addChild(bg);
     gameStage.addChild(alt.grid);
-    gameStage.addChild(drop.grid);
+    gameStage.addChild(game.grid);
 }
 
 function notmain() {
