@@ -95,9 +95,20 @@ let M = {
                             .then(_=> {
                                 self.grid.removeSprite(p_);
                                 self.grid.removeSprite(p);
-                                sprite1.destroy();
-                                sprite2.destroy();
-                                self.grid.setSprite({sprite: sprite3, x: p_.x, y: p_.y});
+                                let alg = self.algebra;
+                                if (alg.algebra.identity != alg.getElem(sprite3)) {
+                                    sprite1.destroy();
+                                    sprite2.destroy();
+                                    self.grid.setSprite({sprite: sprite3, x: p_.x, y: p_.y});
+                                } else {
+                                    sprite1.destroy();
+                                    Waypoint.move(sprite2, 
+                                            {
+                                                pos: Vec.random().mul(1000), 
+                                                easeFn: EasingFunctions.easeOutElastic,
+                                                seconds: 4,
+                                            }).then(_=> sprite2.destroy());
+                                }
                             //}));
                             });
                 }
@@ -153,7 +164,7 @@ let M = {
         let retries = 128;
         let n;
         for (n = 0; n < count; n++) {
-            let elem = algebra.randomElement();
+            let elem = algebra.randomElement(false);
             let sprite = algebra.createSprite(elem);
             let [_, i] = Util.randomSelect(grid.tiles, filled, false);
             if (i == null)

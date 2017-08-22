@@ -1,5 +1,4 @@
 
-let Actions = require("src/Actions");
 let Waypoint = require("src/Waypoint");
 let Util = require("src/Util");
 let Vec = require("src/Vec");
@@ -11,7 +10,7 @@ let PIXI = require("pixi.js");
 let M = {
     create({
         algebra,
-        rows=6,
+        rows=4,
         cols=4,
         tileSize,
         tileSpace,
@@ -20,13 +19,12 @@ let M = {
         speed=900,
         stretch=.8,
         interactive,
-        alpha,
 
         onGameOver=()=>{},
     } = {}) {
         let grid = Grid.new({
             x, y, rows, cols, tileSize, tileSpace, tileMap,
-            speed, stretch, interactive, alpha,
+            speed, stretch, interactive,
         });
         grid.setInteractive();
         
@@ -40,13 +38,13 @@ let M = {
                 down: Keyboard(40),
             },
             ticker: new PIXI.ticker.Ticker(),
+            actions: [],
             initialized: false,
             releasing: false,
             running: false,
             timerId: null,
             lastDir: {x: 0, y: 0},
             actions: Actions.new({throttle: 350}),
-            fixed: {},
         };
 
         return self;
@@ -54,10 +52,6 @@ let M = {
 
     init(self) {
         self.grid.onTileClick = ({x, y}) => {
-            let {grid} = self;
-            if (self.fixed[grid.gameArray.index({x, y})])
-                return;
-
             let prevSprite = self.grid.spriteAt({x, y});
             let alg = self.algebra;
             let elem = null;
@@ -70,8 +64,8 @@ let M = {
                 if (elem) {
                     let sprite = self.algebra.createSprite(elem);
                     self.grid.setSprite({sprite, x, y});
+                    M.checkTiles(self, {x, y});
                 }
-                M.checkTiles(self, {x, y});
             } else {
                 let sprite = self.algebra.createSprite(alg.getElems()[0]);
                 self.grid.setSprite({sprite, x, y});
@@ -91,13 +85,11 @@ let M = {
     // TODO:
     checkTiles(self, pos) {
         let {grid} = self;
-
-        let row = grid.getRow(pos.y, false);
-        let col = grid.getColumn(pos.x, false);
-
         let sprite = self.grid.spriteAt(pos); 
         if (!sprite)
             return;
+        let row = grid.getRow(pos.y, false);
+        let col = grid.getColumn(pos.x, false);
 
         grid.clearHighlights(row);
         grid.clearHighlights(col);
@@ -117,9 +109,9 @@ let M = {
         });
         console.log(elem, row);
         if (row.length > 1)
-            self.grid.hightlightTiles(row, 0xff8888); 
+            self.grid.hightlightTiles(row, 0xff0000); 
         if (col.length > 1)
-            self.grid.hightlightTiles(col, 0xff8888); 
+            self.grid.hightlightTiles(col, 0xff0000); 
     },
 
     newGame(self) {
@@ -131,7 +123,7 @@ let M = {
         M.init(self);
         //M.listenKeys(self);
         //self.actions.start();
-        self.randomize(5);
+        //self.randomize(5);
     },
 
     stop(self) {
@@ -159,29 +151,20 @@ let M = {
         return self.actions.add(_=> self.grid.dropVertical({dir: 1}));
     },
 
-    randomize(self) {
+    randomize(self, count=2) {
         let {algebra, grid} = self;
         let filled = {};
         let retries = 128;
-
-
-        let elems = algebra.getElems();
-        Util.remove(elems, algebra.algebra.identity);
-        Util.shuffle(elems);
-        let count = elems.length;
-
-        self.fixed = {};
+        let n;
         for (n = 0; n < count; n++) {
-
-            let elem = elems[n];
-
+            let elem = algebra.randomElement();
+            let sprite = algebra.createSprite(elem);
             let [_, i] = Util.randomSelect(grid.tiles, filled, false);
             if (i == null)
                 return false;
 
             filled[i] = true;
             filled[elem] = true;
-            self.fixed[i] = true;
             let {x, y} = grid.toXY(i);
             if (self.grid.hasSprite({x, y})) {
                 n--;
@@ -189,7 +172,6 @@ let M = {
                 if (retries <= 0)
                     break;
             } else {
-                let sprite = algebra.createSprite(elem);
                 grid.setSprite({x, y, sprite});
             }
         }

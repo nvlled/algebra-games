@@ -192,6 +192,12 @@ Util.rightpad = function(str, n, ch) {
     return str + ch.repeat(n-str.length);
 }
 
+Util.leftpad = function(str, n, ch) {
+    if (str.length > n)
+        return str;
+    return ch.repeat(n-str.length) + str;
+}
+
 Util.randomIndex = function(array) {
     return Math.floor(Math.random()*array.length);
 }
@@ -255,6 +261,28 @@ Util.shuffle = function(array) {
         [array[a], array[b]] = [x, y];
     }
 }
+
+Util.pickIndices = function(array, indices) {
+    return array.filter((_, i) => indices.indexOf(i) >= 0);
+}
+
+Util.sleep = function(millis) {
+    return new Promise(resolve => {
+        setTimeout(resolve, millis);
+    });
+}
+
+Util.stateName = function(vec) {
+    if (vec.x == 0 && vec.y < 0)
+        return "up";
+    if (vec.x == 0 && vec.y > 0)
+        return "down";
+    if (vec.y == 0 && vec.x > 0)
+        return "right";
+    if (vec.y == 0 && vec.x < 0)
+        return "left";
+    return "idle";
+};
 
 function fluent(module, obj) {
     return new Proxy(

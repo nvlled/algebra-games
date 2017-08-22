@@ -152,6 +152,16 @@ let Vec = {
         return f(x) < f(x_) && f(y) < f(y_);
     },
 
+    random() {
+        while (true) {
+            let [x] = Util.randomSelect([1, 0, -1]);
+            let [y] = Util.randomSelect([1, 0, -1]);
+            if (x == 0 && y == 0)
+                continue;
+            return Vec.new({x, y});
+        }
+    },
+
     // TODO: Make Vec a constructor
 
     // Vec.array([[1,2], [3,4]]) == [Vec(1,2), Vec(3,4)]

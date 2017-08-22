@@ -16,13 +16,21 @@ let M = {
         if (!texture) {
             throw "no texture found for elem: " + elem;
         }
+        if (typeof texture == "function") {
+            texture = texture();
+        }
+        if (texture instanceof PIXI.Sprite) {
+            texture[ELEM] = elem;
+            return texture;
+        }
+
         let sprite =  new PIXI.Sprite(texture);
         sprite[ELEM] = elem;
         return sprite;
     },
 
-    randomElement(self) {
-        return self.algebra.randomElement();
+    randomElement(self, withIdentity) {
+        return self.algebra.randomElement(withIdentity);
     },
 
     randomSprite(self) {

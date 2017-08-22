@@ -45,9 +45,10 @@ let M = {
         
         onTileDown=({x, y})=>console.log("tile down: ", x, y),
         onTileUp=({x, y})=>console.log("tile up: ", x, y),
-        onTileDrag=({x, y}, {x:x_, y:y_})=>console.log("tile drag: ", x, y, "->", x_, y_),
-        onTileDragging=({x, y}, {x:x_, y:y_})=>console.log("tile dragging: ", x, y, "->", x_, y_),
+        onTileDrag=({x, y}, {x:x_, y:y_})=>console.log("drag: ", x, y, "->", x_, y_),
+        onTileDragging=({x, y}, {x:x_, y:y_})=>console.log("dragging: ", x, y, "->", x_, y_),
         onTileClick=({x, y})=>console.log("tile click: ", x, y),
+        onTileOut=({x, y})=>console.log("tile out: ", x, y),
 
     }={}) {
         let {Container, Sprite, Rectangle} = PIXI;
@@ -148,6 +149,8 @@ let M = {
         }
         let onOut = function(e) {
             console.log("W");
+            self.onTileOut(start);
+            //start = end = null;
             //this.tint = 0xffffff;
         }
 
@@ -158,9 +161,9 @@ let M = {
                 tile.interactive = true;
                 tile.on("mousedown", onDown);
                 tile.on("mouseover", onOver);
-                tile.on("mouseout", onOut);
+                //tile.on("mouseout", onOut);
                 tile.on("mouseup",   onUp);
-                //tile.on("mouseupoutside",   onUp);
+                //tile.on("mouseupoutside",   onOut);
             }
         }
     },

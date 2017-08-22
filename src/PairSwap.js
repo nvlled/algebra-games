@@ -11,7 +11,7 @@ let PIXI = require("pixi.js");
 let M = {
     create({
         algebra,
-        rows=4,
+        rows=7,
         cols=6,
         tileSize,
         tileSpace,
@@ -53,6 +53,7 @@ let M = {
     init(self) {
         let srcTile = null;
         let destTile = null;
+        let dir = null;
 
         self.grid.onTileDown = ({x, y}) => {
             srcTile = self.grid.tileAt({x, y});
@@ -67,17 +68,22 @@ let M = {
         self.grid.onTileUp = self.grid.onTileClick;
 
         self.grid.onTileDragging = (pos, pos_) => {
-            let dir = Vec.new(pos_).sub(pos).norm();
+            dir = Vec.new(pos_).sub(pos).norm();
             if (dir.x != 0 && dir.y != 0 || dir.len() == 0) {
                 //prevent horizontal movement
                 return;
             }
-            console.log(dir);
             let p = Vec.new(pos).add(dir);
             if (destTile)
                 destTile.tint = 0xffffff;
             destTile = self.grid.tileAt(p);
             destTile.tint = 0xff0000;
+        },
+        self.grid.onTileOut = (pos, __) => {
+            if (srcTile)
+                srcTile.tint = 0xffffff;
+            if (destTile)
+                destTile.tint = 0xffffff;
         },
         self.grid.onTileDrag = (pos, __) => {
             if (srcTile)
@@ -94,6 +100,9 @@ let M = {
                 //console.log("no sprite at", x, y, !!sprite, "|", x_, y_, !!sprite_);
                 return;
             }
+            if (sprite.setState)
+                sprite.setState(Util.stateName(dir));
+
             grid.move({src: pos, dest: pos_, force: true})
                 .then(_=> {
                     let {algebra} = self;
@@ -101,10 +110,20 @@ let M = {
                     if (sprite__) {
                         grid.removeSprite(pos);
                         grid.removeSprite(pos_);
-                        sprite.destroy();
-                        sprite_.destroy();
-                        grid.setSprite({sprite: sprite__, x: pos_.x, y: pos_.y});
-                        console.log(sprite__);
+                        if (algebra.getElem(sprite__) == algebra.algebra.identity) {
+                            for (let s of [sprite, sprite_]) {
+                                Waypoint.move(s, 
+                                        {
+                                            pos: Vec.random().mul(1000), 
+                                            easeFn: EasingFunctions.easeOutElastic,
+                                            seconds: 4,
+                                        }).then(_=> s.destroy());
+                            }
+                        } else {
+                            sprite.destroy();
+                            sprite_.destroy();
+                            grid.setSprite({sprite: sprite__, x: pos_.x, y: pos_.y});
+                        }
                     } else {
                         grid.move({src: pos, dest: pos, force: true})
                     }
@@ -192,7 +211,7 @@ let M = {
         let {algebra, grid} = self;
         let filled = {};
         for (let n = 0; n < count; n++) {
-            let elem = algebra.randomElement();
+            let elem = algebra.randomElement(false);
             let sprite = algebra.createSprite(elem);
             let [_, i] = Util.randomSelect(grid.tiles, filled);
             filled[i] = true;

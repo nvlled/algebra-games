@@ -160,7 +160,7 @@ let M = {
         let {algebra, grid} = self;
         let filled = {};
         for (let n = 0; n < count; n++) {
-            let elem = algebra.randomElement();
+            let elem = algebra.randomElement(false);
             let sprite = algebra.createSprite(elem);
             let [_, i] = Util.randomSelect(grid.tiles, filled);
             filled[i] = true;
@@ -205,7 +205,7 @@ let M = {
             data: data.map(x => {
                 if (x == 1) {
                     let {algebra} = self;
-                    let elem = algebra.randomElement();
+                    let elem = algebra.randomElement(false);
                     return algebra.createSprite(elem);
                 }
                 return null;

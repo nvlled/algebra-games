@@ -96,8 +96,10 @@ let M = {
         }
     },
 
-    randomElement(self) {
-        return Util.randomSelect(self.elems)[0];
+    randomElement(self, withIdentity=true) {
+        if (withIdentity)
+            return Util.randomSelect(self.elems)[0];
+        return Util.randomSelect(self.elems, {[self.identity]: true})[0];
     },
 
     getSize(self) {
