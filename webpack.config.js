@@ -24,7 +24,7 @@ module.exports = {
         new HtmlWebpackPlugin({
             template: './index.html'
         }),
-        //new CopyWebpackPlugin([{from: "./images", to: "images/"}]),
+        new CopyWebpackPlugin([{from: "./images", to: "images/"}]),
     ],
     module: {
         loaders: [
