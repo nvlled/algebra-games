@@ -204,7 +204,8 @@ Util.randomIndex = function(array) {
 
 Util.randomSelect = function(array, exclude={}, fail=true) {
     let i = 0;
-    while (i < array.length*2) {
+    let n = array.length*3;
+    while (n) {
         let idx = Util.randomIndex(array);
         let x = array[idx];
         if (!exclude[x] && !exclude[idx])
@@ -219,6 +220,12 @@ Util.randomSelect = function(array, exclude={}, fail=true) {
 Util.randomPair = function(keys, vals) {
     let pairs = {};
     let exclude = {};
+
+    let n = Math.min(keys.length, vals.length);
+    keys.splice(n);
+    vals.splice(n);
+    console.log(keys, n, vals);
+
     for (let k of keys) {
         let [val, idx]  = Util.randomSelect(vals, exclude);
         pairs[k] = val;

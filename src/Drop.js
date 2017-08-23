@@ -3,6 +3,7 @@ let Grid = require("src/Grid");
 let Block = require("src/Block");
 let Keyboard = require("src/Keyboard");
 let PIXI = require("pixi.js");
+let EasingFunctions = require("src/EasingFunctions");
 
 let shapes = {
     L: {
@@ -123,10 +124,10 @@ let M = {
             }
 
             if (self.running) {
-                setInterval(loop, self.descendSpeed);
+                setTimeout(loop, self.descendSpeed);
             }
         } 
-        setInterval(loop, self.descendSpeed);
+        setTimeout(loop, self.descendSpeed);
     },
     stopDescension(self) {
     },
@@ -135,7 +136,7 @@ let M = {
         if (!self.initialized) {
             M.init(self);
         }
-        running = true;
+        self.running = true;
         M.listenKeys(self);
 
         M.clear(self);

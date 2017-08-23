@@ -4,7 +4,7 @@
  * Easing Functions - inspired from http://gizma.com/easing/
  * only considering the t value for the range [0, 1] => [0, 1]
  */
-EasingFunctions = {
+let EasingFunctions = {
     // no easing, no acceleration
     linear: function (t) { return t },
     // accelerating from zero velocity

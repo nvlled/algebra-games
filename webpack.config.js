@@ -6,7 +6,7 @@ var webpack = require('webpack')
 
 module.exports = {
     node: {fs: "empty"},
-    entry: "./src/main.js",
+    entry: ["babel-polyfill", "./src/main.js"],
     output: {
         path: path.resolve(__dirname, "dist"),
         filename: "bundle.js"
@@ -27,41 +27,10 @@ module.exports = {
         new CopyWebpackPlugin([{from: "./images", to: "images/"}]),
     ],
     module: {
-        loaders: [
-            //{ test: /\.js?$/, loader: "ts-loader" },
+        rules: [
+        ],
 
-        //{
-        //    test: /\.js$/,
-        //    loader: require.resolve("identity-loader"),
-        //},
-        //{
-        //    test: /\.(js|jsx)$/,
-        //    exclude: /(node_modules|bower_components)/,
-        //    loader: require.resolve('babel-loader'),
-        //    options: {
-        //        babelrc: false,
-        //        presets: ["env"],
-        //        cacheDirectory: true,
-        //    },
-        //},
-        //{ 
-        //    test: /\.css$/, loader: "style!css" 
-        //},
-        //{
-        //    test: /\.json$/,
-        //    loader: 'file-loader',
-        //    options: {
-        //        name: 'static/media/[name].[hash:8].[ext]',
-        //    },
-        //},
-        //{
-        //    test: [/\.bmp$/, /\.gif$/, /\.jpe?g$/, /\.png$/],
-        //    loader: require.resolve('url-loader'),
-        //    options: {
-        //        limit: 10000,
-        //        name: 'static/media/[name].[hash:8].[ext]',
-        //    },
-        //},
+        loaders: [
         ],
     },
 };

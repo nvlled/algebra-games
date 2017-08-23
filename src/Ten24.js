@@ -1,6 +1,7 @@
 
 let Actions = require("src/Actions");
 let Waypoint = require("src/Waypoint");
+let EasingFunctions = require("src/EasingFunctions");
 let Util = require("src/Util");
 let Vec = require("src/Vec");
 let Grid = require("src/Grid");

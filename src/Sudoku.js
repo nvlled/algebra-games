@@ -11,7 +11,7 @@ let PIXI = require("pixi.js");
 let M = {
     create({
         algebra,
-        rows=6,
+        rows=4,
         cols=4,
         tileSize,
         tileSpace,
@@ -171,6 +171,7 @@ let M = {
         let count = elems.length;
 
         self.fixed = {};
+        let n;
         for (n = 0; n < count; n++) {
 
             let elem = elems[n];

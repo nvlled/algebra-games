@@ -6,6 +6,7 @@ let Grid = require("src/Grid");
 let Block = require("src/Block");
 let Keyboard = require("src/Keyboard");
 let Actions = require("src/Actions");
+let EasingFunctions = require("src/EasingFunctions");
 let PIXI = require("pixi.js");
 
 let M = {
@@ -53,45 +54,54 @@ let M = {
     init(self) {
         let srcTile = null;
         let destTile = null;
-        let dir = null;
 
         self.grid.onTileDown = ({x, y}) => {
             srcTile = self.grid.tileAt({x, y});
             srcTile.tint = 0xff0000;
         }
-        self.grid.onTileClick = ({x, y}) => {
+        self.grid.onTileClick = (pos) => {
+            if (!pos)
+                return;
+            let {x, y} = pos;
             if (srcTile)
                 srcTile.tint = 0xffffff;
             if (destTile)
                 destTile.tint = 0xffffff;
         }
-        self.grid.onTileUp = self.grid.onTileClick;
+        //self.grid.onTileUp = self.grid.onTileClick;
 
-        self.grid.onTileDragging = (pos, pos_) => {
-            dir = Vec.new(pos_).sub(pos).norm();
-            if (dir.x != 0 && dir.y != 0 || dir.len() == 0) {
-                //prevent horizontal movement
+        self.grid.onTileDragging = (pos, pos_, dir) => {
+            //dir = Vec.new(pos_).sub(pos).norm();
+            //if (dir.x != 0 && dir.y != 0 || dir.len() == 0) {
+            //    //prevent horizontal movement
+            //    return;
+            //}
+
+            if (!dir)
                 return;
-            }
             let p = Vec.new(pos).add(dir);
             if (destTile)
                 destTile.tint = 0xffffff;
             destTile = self.grid.tileAt(p);
-            destTile.tint = 0xff0000;
-        },
-        self.grid.onTileOut = (pos, __) => {
-            if (srcTile)
-                srcTile.tint = 0xffffff;
             if (destTile)
-                destTile.tint = 0xffffff;
+                destTile.tint = 0xff0000;
         },
-        self.grid.onTileDrag = (pos, __) => {
+        //self.grid.onTileOut = (pos, __) => {
+        //    if (srcTile)
+        //        srcTile.tint = 0xffffff;
+        //    if (destTile)
+        //        destTile.tint = 0xffffff;
+        //},
+        self.grid.onTileDrag = (pos, __, dir) => {
             if (srcTile)
                 srcTile.tint = 0xffffff;
             if (destTile)
                 destTile.tint = 0xffffff;
 
-            let pos_ = self.grid.getTilePos(destTile);
+            let pos_ = Vec.new(pos).add(dir);
+            if (!Vec.isOrthogonal(dir))
+                return;
+
 
             let {grid} = self;
             let sprite = grid.spriteAt(pos);

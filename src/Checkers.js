@@ -53,30 +53,7 @@ let M = {
     },
 
     init(self) {
-        self.grid.onTileClick = ({x, y}) => {
-            let {grid} = self;
-            if (self.fixed[grid.gameArray.index({x, y})])
-                return;
-
-            let prevSprite = self.grid.spriteAt({x, y});
-            let alg = self.algebra;
-            let elem = null;
-            if (prevSprite) {
-                prevSprite.destroy();
-                self.grid.removeSprite({x, y});
-                let elem = alg.getElem(prevSprite);
-                elem = Util.nextItem(alg.getElems(), elem);
-
-                if (elem) {
-                    let sprite = self.algebra.createSprite(elem);
-                    self.grid.setSprite({sprite, x, y});
-                }
-                M.checkTiles(self, {x, y});
-            } else {
-                let sprite = self.algebra.createSprite(alg.getElems()[0]);
-                self.grid.setSprite({sprite, x, y});
-                M.checkTiles(self, {x, y});
-            }
+        self.grid.onTileClick = (pos) => {
 
         }
 
@@ -115,7 +92,6 @@ let M = {
             return elem == alg.getElem(sprite_);
 
         });
-        console.log(elem, row);
         if (row.length > 1)
             self.grid.hightlightTiles(row, 0xff8888); 
         if (col.length > 1)

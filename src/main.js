@@ -20,18 +20,37 @@ let Button = require("src/Button");
 let TextureSet = require("src/TextureSet");
 let AniSprite = require("src/AniSprite");
 let CharSprites = require("src/CharSprites");
+let CoinSprites = require("src/CoinSprites");
 
 let Drop = require("src/Drop");
 let Ten24 = require("src/Ten24");
 let Sudoku = require("src/Sudoku");
 let PairSwap = require("src/PairSwap");
+let Checkers = require("src/Checkers");
 
 let charSprites = CharSprites.new();
+let coinSprites = CoinSprites.new();
 
-function setup() {
+let renderer;
+async function setup() {
     charSprites.loadTextures(PIXI.loader);
+    coinSprites.loadTextures(PIXI.loader);
 
+    renderer = PIXI.autoDetectRenderer(1000, 800);
+    renderer.options.antialias = true;
+    renderer.view.onmousedown = e => e.preventDefault();
+    document.body.querySelector("div.game").appendChild(renderer.view);
+    window.addEventListener("keydown", e => {
+        if (e.key == "F5" || e.keyCode == 116) {
+            window.location = window.location;
+        }
+    });
+
+    showLoadingStatus();
     PIXI.loader
+        //.use((_, next) => {
+        //    setTimeout(next, 1000+Math.random()*3000);
+        //})
         .add("bg1", "images/cyberglow.png")
         .add("bg2", "images/starfield2.jpg")
         .add("bg3", "images/tron.png")
@@ -43,8 +62,6 @@ function setup() {
         .add("cell4", "images/Ground/ground_05.png")
         .add("fireball", "images/fireball.png")
 
-        //.add("M_11", "images/M_11.png")
-
         .add("people", "images/people.png")
         .add("equals", "images/equals.png")
         .add("cat", "images/cat.png")
@@ -54,6 +71,53 @@ function setup() {
         .load(main);
 }
 
+function showLoadingStatus() {
+    let loadText = new PIXI.Text('....',{fontFamily : 'Arial', fontSize: 24, fill : 0xeeeeee, align : 'center'});
+    let g = new PIXI.Graphics();
+    let g2 = new PIXI.Graphics();
+
+    loadText.x = renderer.width/2;
+    loadText.y = renderer.height/2;
+    loadText.anchor.set(.5, .5);
+
+    g.beginFill(0xaa0000, 0.9);
+    g.drawRect(0, 0, 100, 100);
+    g.endFill();
+
+    g2.beginFill(0x00dddd, 0.8);
+    g2.drawRect(0, 0, 100, 100);
+    g2.endFill();
+    g2.rotate = Math.PI;
+    let loadingScreen = new PIXI.Container();
+
+    loadingScreen.addChild(g);
+    loadingScreen.addChild(g2);
+    loadingScreen.addChild(loadText);
+
+    g.x = renderer.width/2;
+    g.y = renderer.height/2;
+    g.pivot.set(50, 50);
+    g2.x = renderer.width/2;
+    g2.y = renderer.height/2;
+    g2.pivot.set(50, 50);
+    let ticker = new PIXI.ticker.Ticker(); 
+    let loop = () => {
+        g.rotation += 0.1;
+        g2.rotation += 0.05;
+        renderer.render(loadingScreen);
+    }
+    ticker.add(loop);
+    ticker.start();
+    PIXI.loader.onProgress.add(loader => {
+        loadText.text = "[loading " + PIXI.loader.progress + "%]";
+        renderer.render(loadingScreen);
+    });
+    PIXI.loader.onComplete.add(loader => {
+        ticker.remove(loop);
+        ticker.stop();
+    });
+}
+
 function main() {
     let {
         Sprite,
@@ -61,10 +125,6 @@ function main() {
         loader: {resources},
     } = PIXI;
 
-    let renderer = PIXI.autoDetectRenderer(1000, 800);
-    renderer.options.antialias = true;
-    renderer.view.onmousedown = e => e.preventDefault();
-    document.body.querySelector("div.game").appendChild(renderer.view);
     let gameStage = new Container();
     PIXI.ticker.shared.add(_=> renderer.render(gameStage));
 
@@ -74,26 +134,29 @@ function main() {
             PIXI.SCALE_MODES.NEAREST;
     }
 
-    let tset = TextureSet.new({
-        image: resources["people"].texture,
-        tileWidth: 48,
-        tileHeight: 51.0,
-    });
+    //let tset = TextureSet.new({
+    //    image: resources["people"].texture,
+    //    tileWidth: 48,
+    //    tileHeight: 51.0,
+    //});
     let algebra = Algebra.new({
         identity: 'e',
+        //table: randomTable(["a", "b", "c", "d", "e"]),
         table: [
             ["a", "a", "e"],
             ["a", "b", "c"],
             ["a", "c", "b"],
             ["b", "b", "a"],
             ["c", "c", "b"],
-            //["c", "b", "e"],
         ],
     });
+    console.log(algebra.table);
+
+    let [factory] = Util.randomSelect([charSprites, coinSprites]);
     let galge = GraphicAlgebra.new({
         algebra,
         textures: Object.assign(
-            Util.randomPair(algebra.elems, charSprites.getConstructors(resources)),
+            Util.randomPair(algebra.elems, factory.getConstructors(resources)),
             { equals: resources["equals"].texture,
               [algebra.identity]:  resources["fireball"].texture,
             }
@@ -103,16 +166,14 @@ function main() {
         //    { equals: resources["equals"].texture }
         //)
     });
-    galge.createSprite('a');
 
     let gameState = {renderer, gameStage, algebra: galge};
-
     let params = Util.parseQueryParams(window.location.search);
     // let game = null
     switch (params["game"]) {
         case "drop":   dropGame(gameState);   break;
         case "ten24":  ten24Game(gameState); break;
-        case "sudoku": sudokuGame(gameState); break;
+        case "sadaku": sudokuGame(gameState); break;
         case "pairswap": pairSwapGame(gameState); break;
         case "checkers": checkersGame(gameState); break;
     }
@@ -122,6 +183,34 @@ function main() {
             "game: " + params["game"];
     else
         renderer.view.remove();
+}
+
+function randomTable(elems, n=elems.length) {
+    let table = [];
+    let rand = _=> Util.randomSelect(elems)[0];
+    for (let i = 0; i < n; i++)
+        table.push([rand(), rand(), rand()]);
+    return table;
+}
+
+function randomAlgebra(elems, spriteCtors) {
+    let algebra = Algebra.new({
+        identity: 'e',
+        table: randomTable(elems),
+    });
+    let galge = GraphicAlgebra.new({
+        algebra,
+        textures: Object.assign(
+            Util.randomPair(algebra.elems, coinSprites.getConstructors(resources)),
+            { equals: resources["equals"].texture,
+              [algebra.identity]:  resources["fireball"].texture,
+            }
+        )
+        //textures: Object.assign(
+        //    Util.randomPair(algebra.elems, tset.textures),
+        //    { equals: resources["equals"].texture }
+        //)
+    });
 }
 
 function checkersGame({renderer, gameStage, algebra}) {
@@ -141,7 +230,7 @@ function checkersGame({renderer, gameStage, algebra}) {
             return null;
         },
     });
-    let game = PairSwap.new({
+    let game = Checkers.new({
         interactive: true,
         algebra,
         x: 50, y: 10,

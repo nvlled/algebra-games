@@ -162,6 +162,15 @@ let Vec = {
         }
     },
 
+    isZero(v) {
+        return v.x == 0 && v.y == 0;
+    },
+
+    isOrthogonal(v) {
+        return v.x != 0 && v.y == 0 ||
+               v.x == 0 && v.y != 0;
+    },
+
     // TODO: Make Vec a constructor
 
     // Vec.array([[1,2], [3,4]]) == [Vec(1,2), Vec(3,4)]
