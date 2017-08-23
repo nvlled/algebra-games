@@ -44,7 +44,7 @@ let M = {
         highlight=0xdd0000,
         
         onTileDown=({x, y})=>console.log("tile down: ", x, y),
-        onTileUp=({x, y})=>console.log("tile up: ", x, y),
+        //onTileUp=({x, y})=>console.log("tile up: ", x, y),
         onTileDrag=({x, y}, {x:x_, y:y_})=>console.log("drag: ", x, y, "->", x_, y_),
         onTileDragging=({x, y}, {x:x_, y:y_})=>console.log("dragging: ", x, y, "->", x_, y_),
         onTileClick=({x, y})=>console.log("tile click: ", x, y),
@@ -93,7 +93,7 @@ let M = {
             onTileDrag,
             onTileDragging,
             onTileDown,
-            onTileUp,
+            //onTileUp,
             x, y,
             speed,
             cols, rows, 
@@ -119,39 +119,45 @@ let M = {
         let start = null;
         let end = null;
 
+        function clearListeners(sprite) {
+            sprite.removeListener("pointerupoutside", onUp);
+            sprite.removeListener("pointerup", onClick);
+            sprite.removeListener("pointermove", onMove);
+        }
+        let onMove = function(e){
+            let dir = null;
+            end = M.globalToGridPos(self, e.data.global);
+            if (end)
+                dir = Vec.new(end).sub(start).norm();
+            self.onTileDragging(start, end, dir);
+        }
         let onDown = function(e){
-            console.log("X");
             let tile = this;
             start = tile[POS];
             end = start;
             self.onTileDown(start);
+            tile.on("pointerupoutside", onUp);
+            tile.on("pointerup", onClick);
+            tile.on("pointermove", onMove);
+            console.log("down");
         }
         let onUp = function(e) {
-            console.log("Y");
-            self.onTileUp(start, end);
+            clearListeners(this);
+            
+            console.log("up");
+            //self.onTileUp(start, end);
 
-            if (!start && !end)
+            if (!end)
                 return;
-            if (Vec.new(start).equals(end)) {
-                self.onTileClick(start);
-            } else {
-                self.onTileDrag(start, end);
-            }
+            let dir = Vec.new(end).sub(start).norm();
+            self.onTileDrag(start, end, dir);
             start = end = null;
         }
-        let onOver = function(e) {
-            console.log("Z");
-            //this.tint = 0xaaffff;
-            if (!start)
-                return;
-            end = this[POS];
-            self.onTileDragging(start, end);
-        }
-        let onOut = function(e) {
-            console.log("W");
-            self.onTileOut(start);
-            //start = end = null;
-            //this.tint = 0xffffff;
+
+        let onClick = function(e) {
+            clearListeners(this);
+            console.log("click");
+            self.onTileClick(this[POS]);
         }
 
         let {rows, cols} = self;
@@ -159,11 +165,7 @@ let M = {
             for (let x = 0; x < cols; x++) {
                 let tile = M.tileAt(self, {x, y});
                 tile.interactive = true;
-                tile.on("mousedown", onDown);
-                tile.on("mouseover", onOver);
-                //tile.on("mouseout", onOut);
-                tile.on("mouseup",   onUp);
-                //tile.on("mouseupoutside",   onOut);
+                tile.on("pointerdown", onDown);
             }
         }
     },
@@ -558,6 +560,16 @@ let M = {
 
     isFull(self) {
         return self.gameArray.isFull();
+    },
+
+    globalToGridPos(self, {x, y}) {
+        let {x: bx, y: by} = self;
+        let {tileWidth, tileSpace} = self;
+        x = Math.floor((x - bx)/(tileWidth+tileSpace));
+        y = Math.floor((y - by)/(tileWidth+tileSpace));
+        if (self.gameArray.outbounds({x, y}))
+            return null;
+        return {x, y};
     },
 
     //get X() { }
