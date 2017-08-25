@@ -3,7 +3,7 @@ let Grid = require("src/Grid");
 let Block = require("src/Block");
 let Keyboard = require("src/Keyboard");
 let PIXI = require("pixi.js");
-let EasingFunctions = require("src/EasingFunctions");
+let EasingFn = require("src/EasingFn");
 
 let shapes = {
     L: {

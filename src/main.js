@@ -14,7 +14,7 @@ let GameArray = require("src/GameArray");
 let Algebra = require("src/Algebra");
 let GraphicAlgebra = require("src/GraphicAlgebra");
 let GraphicTable = require("src/GraphicTable");
-let EasingFunctions = require("src/EasingFunctions");
+let EasingFn = require("src/EasingFn");
 let Grid = require("src/Grid");
 let Button = require("src/Button");
 let TextureSet = require("src/TextureSet");
@@ -447,7 +447,7 @@ function ten24Game({renderer, gameStage, algebra}) {
     //    Waypoint.move(button, {
     //        seconds: 1,
     //        pos: {x: ten24.grid.x + ten24.grid.width/2 - button.width/2, y: renderer.height/2},
-    //        easeFn: EasingFunctions.easeOutElastic,
+    //        easeFn: EasingFn.easeOutElastic,
     //    });
     //}
 
@@ -812,7 +812,7 @@ function notmain() {
             //moveStraight(sprite, Vec.create(gx, gy), 5);
             Waypoint.add(sprite, 
                     {pos: Vec.create(gx, gy), speed: 200,
-                     easeFn: EasingFunctions.easeInOutQuart});
+                     easeFn: EasingFn.inOutQuart});
             Waypoint.start(sprite);
             //Waypoint.end = stopSync
         } else {
@@ -850,7 +850,7 @@ function notmain() {
 
     //Waypoint.move(cat, {
     //    pos: vec(450, 250), seconds: 1,
-    //    easeFn: EasingFunctions.easeOutElastic,
+    //    easeFn: EasingFn.easeOutElastic,
     //}).then(_=> console.log("X"));
 
     let block = Block.create({

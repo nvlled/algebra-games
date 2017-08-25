@@ -1,7 +1,7 @@
 
 let Actions = require("src/Actions");
 let Waypoint = require("src/Waypoint");
-let EasingFunctions = require("src/EasingFunctions");
+let EasingFn = require("src/EasingFn");
 let Util = require("src/Util");
 let Vec = require("src/Vec");
 let Grid = require("src/Grid");
@@ -106,7 +106,7 @@ let M = {
                                     Waypoint.move(sprite2, 
                                             {
                                                 pos: Vec.random().mul(1000), 
-                                                easeFn: EasingFunctions.easeOutElastic,
+                                                easeFn: EasingFn.outElastic,
                                                 seconds: 4,
                                             }).then(_=> sprite2.destroy());
                                 }

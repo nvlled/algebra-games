@@ -6,7 +6,7 @@ let Grid = require("src/Grid");
 let Block = require("src/Block");
 let Keyboard = require("src/Keyboard");
 let Actions = require("src/Actions");
-let EasingFunctions = require("src/EasingFunctions");
+let EasingFn = require("src/EasingFn");
 let PIXI = require("pixi.js");
 
 let M = {
@@ -125,7 +125,7 @@ let M = {
                                 Waypoint.move(s, 
                                         {
                                             pos: Vec.random().mul(1000), 
-                                            easeFn: EasingFunctions.easeOutElastic,
+                                            easeFn: EasingFn.outElastic,
                                             seconds: 4,
                                         }).then(_=> s.destroy());
                             }

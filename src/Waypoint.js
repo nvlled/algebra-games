@@ -1,6 +1,6 @@
 let PixiUtil = require("src/PixiUtil");
 let Util = require("src/Util");
-let EasingFunctions = require("src/EasingFunctions");
+let EasingFn = require("src/EasingFn");
 let Vec = require("src/Vec");
 
 let QUEUE = Symbol();
@@ -112,7 +112,7 @@ let Waypoint = {
     }) {
         if (!sprite)
             Promise.resolve();
-        easeFn = Util.or(easeFn, sprite[EASE], EasingFunctions.linear);
+        easeFn = Util.or(easeFn, sprite[EASE], EasingFn.linear);
         Waypoint.clear(sprite);
 
         let ownTicker = false;
@@ -223,5 +223,3 @@ let Waypoint = {
 }
 
 module.exports = Waypoint;
-
-
