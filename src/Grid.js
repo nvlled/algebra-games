@@ -147,10 +147,13 @@ let M = {
             console.log("up");
             //self.onTileUp(start, end);
 
-            if (!end)
-                return;
-            let dir = Vec.new(end).sub(start).norm();
-            self.onTileDrag(start, end, dir);
+            if (end) { 
+                let dir = Vec.new(end).sub(start).norm();
+                self.onTileDrag(start, end, dir);
+            } else {
+                self.onTileDrag(start, null, null);
+            }
+
             start = end = null;
         }
 

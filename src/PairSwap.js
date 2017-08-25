@@ -98,7 +98,10 @@ let M = {
             if (destTile)
                 destTile.tint = 0xffffff;
 
+            if (!dir)
+                return;
             let pos_ = Vec.new(pos).add(dir);
+
             if (!Vec.isOrthogonal(dir))
                 return;
 
