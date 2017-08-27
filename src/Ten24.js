@@ -11,9 +11,9 @@ let PIXI = require("pixi.js");
 
 let M = {
     create({
+        rows=4,
+        cols=4,
         algebra,
-        rows,
-        cols,
         tileSize,
         tileSpace,
         tileMap,
@@ -112,6 +112,7 @@ let M = {
                                 }
                             //}));
                             });
+                    await self.grid.drop({dir: self.lastDir});
                 }
             }
             if (self.grid.isFull()) {
@@ -141,22 +142,22 @@ let M = {
 
     moveUp(self) {
         self.lastDir = {x: 0, y: -1};
-        return self.actions.add(_=> self.grid.dropVertical({dir: -1}));
+        return self.actions.add(_=> self.grid.drop({dir: self.lastDir}));
     },
 
     moveLeft(self) {
         self.lastDir = {x: -1, y: 0};
-        return self.actions.add(_=> self.grid.dropHorizontal({dir: -1}));
+        return self.actions.add(_=> self.grid.drop({dir: self.lastDir}));
     },
 
     moveRight(self) {
         self.lastDir = {x:  1, y: 0};
-        return self.actions.add(_=> self.grid.dropHorizontal({dir: 1}));
+        return self.actions.add(_=> self.grid.drop({dir: self.lastDir}));
     },
 
     moveDown(self) {
         self.lastDir = {x: 0, y:  1};
-        return self.actions.add(_=> self.grid.dropVertical({dir: 1}));
+        return self.actions.add(_=> self.grid.drop({dir: self.lastDir}));
     },
 
     randomize(self, count=2) {

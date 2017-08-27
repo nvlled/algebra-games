@@ -485,6 +485,17 @@ let M = {
     //    return points_;
     //},
 
+    drop(self, {
+        apply=false,
+        dir,
+    } = {}) {
+        if (Vec.isHorizontal(dir))
+            return M.dropHorizontal(self, {dir: dir.x, apply});
+        else if (Vec.isVertical(dir))
+            return M.dropVertical(self,   {dir: dir.y, apply});
+        return [];
+    },
+
     dropHorizontal(self, {
         limit=0,
         apply=false,

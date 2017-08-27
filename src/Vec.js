@@ -23,41 +23,53 @@ let Vec = {
         //let {wrap, copy} = Vec;
         //return compose(copy, wrap)(v);
     },
-    create: function(x, y) {
+
+    create: function(x, y, z) {
         let obj = {};
         obj.x = x || 0;
         obj.y = y || 0;
+        obj.z = z || 0;
         obj[Vec.ID] = true;
         return obj;
     },
+
     copy: function(v) {
-        let v_ = {x: v.x, y: v.y};
+        let v_ = {x: v.x, y: v.y, z: v.z || 0};
         if (v[Vec.ID])
             v_ = Vec.wrap(v_);
         return v_;
     },
+
     init: function(obj) {
         obj = obj || {};
         obj.x = obj.x || 0;
         obj.y = obj.y || 0;
+        obj.z = obj.z || 0;
         return obj;
     },
+    
     neg: __w(function(v) {
         return Vec.mul(v, -1);
     }),
+
     mul: __w(function(v, n) {
         v.x *= n;
         v.y *= n;
+        v.z = (v.z*n) || 0;
         return v;
     }),
+
     times: __w(function(v, w) {
         v.x *= w.x;
         v.y *= w.y;
+        v.z *= w.z || 0;
         return v;
     }),
+
     len: __w(function(v) {
-        return Math.sqrt(v.x*v.x + v.y*v.y);
+        return Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
     }),
+
     norm: __w(function(v) {
         let n = Vec.len(v);
         if (n == 0)
@@ -65,16 +77,21 @@ let Vec = {
         Vec.mul(v, 1/n);
         return v;
     }),
+
     add: __w(function(v, w) {
         v.x += w.x;
         v.y += w.y;
+        v.z += w.z || 0;
         return v;
     }),
+
     sub: __w(function(v, w) {
         v.x -= w.x;
         v.y -= w.y;
+        v.z -= w.z || 0;
         return v;
     }),
+
     clamp: __w(function(v, max, min) {
         let {copy, neg} = Vec;
         if (!min)
@@ -90,6 +107,11 @@ let Vec = {
         else if (v.y < min.y)
             v.y = min.y;
 
+        if (v.z > max.z)
+            v.z = max.z;
+        else if (v.z < min.z)
+            v.z = min.z;
+
         return  v;
     }),
 
@@ -98,14 +120,15 @@ let Vec = {
         Vec.mul(v, n);
         v.x = Math.floor(v.x);
         v.y = Math.floor(v.y);
+        v.z = Math.floor(v.z || 0);
         Vec.mul(v, 1/n);
         return v;
     }),
 
     dot(v, w) {
-        let {x:a, y:c} = v;
-        let {x:b, y:d} = w;
-        return a*b + c*d;
+        let {x:a, y:c, z:e} = v;
+        let {x:b, y:d, z:f} = w;
+        return a*b + c*d + ((e*f) || 0);
     },
 
     rotateRight(v) {
@@ -133,42 +156,65 @@ let Vec = {
         return v;
     },
 
-    toString(self) {
-        let {x, y} = self;
+    toString(self, withZ=false) {
+        let {x, y, z} = self;
+        if (withZ)
+            return `Vec(${x}, ${y}, ${z})`;
         return `Vec(${x}, ${y})`;
     },
 
     equals(v, w) {
-        let {x, y} = v;
-        let {x: x_, y: y_} = w;
+        let {x, y, z} = v;
+        let {x: x_, y: y_, z: z_} = w;
         let f = Math.floor;
-        return f(x) == f(x_) && f(y) == f(y_);
+        return f(x) == f(x_) && f(y) == f(y_) && f(z) == f(z_);
     },
 
     lessThan(v, w) {
         let {x, y} = v;
-        let {x: x_, y: y_} = w;
+        let {x: x_, y: y_, z: z_} = w;
         let f = Math.floor;
-        return f(x) < f(x_) && f(y) < f(y_);
+        return f(x) < f(x_) && f(y) < f(y_) && f(z) < f(z_);
     },
 
-    random() {
+    greaterThan(v, w) {
+        return Vec.compare(v, w, Vec.CMP_GT);
+    },
+
+    compare(v, w, op=Vec.CMP_EQ) {
+        let {x, y} = v;
+        let {x: x_, y: y_, z: z_} = w;
+        let f = Math.floor;
+        return op(f(x), f(x_)) &&
+               op(f(y), f(y_)) &&
+               op(f(z), f(z_));
+    },
+
+    random(withZ=false) {
         while (true) {
             let [x] = Util.randomSelect([1, 0, -1]);
             let [y] = Util.randomSelect([1, 0, -1]);
-            if (x == 0 && y == 0)
-                continue;
-            return Vec.new({x, y});
+            let [z] = Util.randomSelect([1, 0, -1]);
+            if (withZ) {
+                if (x == 0 && y == 0 && z == 0)
+                    continue;
+                return Vec.new({x, y, z});
+            } else {
+                if (x == 0 && y == 0)
+                    continue;
+                return Vec.new({x, y});
+            }
         }
     },
 
     isZero(v) {
-        return v.x == 0 && v.y == 0;
+        return v.x == 0 && v.y == 0 && v.z == 0;
     },
 
+    isVertical(v)   { return v.x == 0 && v.y != 0; },
+    isHorizontal(v) { return v.x != 0 && v.y == 0; },
     isOrthogonal(v) {
-        return v.x != 0 && v.y == 0 ||
-               v.x == 0 && v.y != 0;
+        return Vec.isVertical(v) || Vec.isHorizontal(v);
     },
 
     // TODO: Make Vec a constructor
@@ -176,6 +222,10 @@ let Vec = {
     // Vec.array([[1,2], [3,4]]) == [Vec(1,2), Vec(3,4)]
     array: function(...args) {
         return args.map(a => Vec.create(...a));
+    },
+
+    from(x, y, z=0) {
+        return Vec.new({x, y, z});
     },
 
     //Vec.new(v, function(v) {
@@ -187,7 +237,15 @@ let Vec = {
     //},
 }
 Vec.Proto = Util.prototypify(Vec);
+Vec.CMP_EQ = (a, b) => a == b;
+Vec.CMP_LT = (a, b) => a < b;
+Vec.CMP_LE = (a, b) => a <= b;
+Vec.CMP_GT = (a, b) => a > b;
+Vec.CMP_GE = (a, b) => a >= b;
 
 module.exports = Vec;
+
+
+
 
 

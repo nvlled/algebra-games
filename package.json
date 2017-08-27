@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha -w"
   },
   "author": "",
   "license": "ISC",
@@ -25,6 +25,7 @@
     "html-webpack-plugin": "^2.29.0",
     "identity-loader": "^1.0.1",
     "json-loader": "^0.5.7",
+    "mocha": "^3.5.0",
     "pixi-tiledmap": "^1.7.3",
     "tiled-to-pixi": "^1.0.1",
     "transform-loader": "^0.2.4",

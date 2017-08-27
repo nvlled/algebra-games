@@ -2,6 +2,7 @@ let PixiUtil = require("src/PixiUtil");
 let Util = require("src/Util");
 let EasingFn = require("src/EasingFn");
 let Vec = require("src/Vec");
+let Interpol = require("src/Interpol");
 
 let QUEUE = Symbol();
 let TICKER = Symbol();
@@ -103,6 +104,8 @@ let Waypoint = {
             sprite[TICKER].stop();
     },
 
+    // !!!!!!!!!!!
+    // TODO: use Anima
     move(sprite, {
         pos, 
         seconds=null, 
@@ -121,7 +124,7 @@ let Waypoint = {
             ownTicker = true;
         }
 
-        let stepSize = 3;
+        //let stepSize = 3;
         let dir = Vec.new(pos).sub(sprite.position);
         let dist = dir.len();
 
@@ -131,16 +134,20 @@ let Waypoint = {
         let elapsed = 0;
         let spritePos = Vec.new(sprite.position);
 
+        let interpol = Interpol.new(0, seconds);
+
         let promise = new Promise(function(resolve, reject) {
             let loop  = _=> {
                 elapsed += ticker.elapsedMS/1000;
-                let t = elapsed/seconds;
+                //let t = elapsed/seconds;
+                let t = interpol.applyScalar(elapsed);
+                //console.log(t, interpol(elapsed), "|", elapsed, seconds);
                 let x = easeFn(t);
 
                 let pos_ = spritePos.new().add(dir.new().mul(x));
                 sprite.position = pos_;
 
-                if (t >= 1) {
+                if (t >= 1 || !interpol.inrangeScalar(elapsed)) {
                     ticker.remove(loop);
                     if (ownTicker)
                         ticker.stop();

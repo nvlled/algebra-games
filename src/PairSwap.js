@@ -20,13 +20,12 @@ let M = {
         x, y,
         speed=900,
         stretch=.8,
-        interactive,
 
         onGameOver=()=>{},
     } = {}) {
         let grid = Grid.new({
             x, y, rows, cols, tileSize, tileSpace, tileMap,
-            speed, stretch, interactive,
+            speed, stretch, interactive: true,
         });
         grid.setInteractive();
         

@@ -45,6 +45,26 @@ Util.contextualize = function(fn) {
     }
 }
 
+Util.doWhile = function(cond, body) {
+    return new Promise(resolve => {
+        let ticker = new PIXI.ticker.Ticker();
+        let time = 0;
+        let loop = _ => {
+            let elapsed = ticker.elapsedMS;
+            body(elapsed, time);
+            if (!cond(elapsed, time)) {
+                ticker.remove(loop);
+                ticker.stop();
+                resolve();
+            }
+            time += elapsed;
+            //console.log(">", elapsed, time);
+        }
+        ticker.add(loop);
+        ticker.start();
+    });
+}
+
 //function injectProto(pu, newProto) {
 //    let proto = pu.__proto__;
 //    pu.__proto__ = extend({}, newProto);
@@ -222,9 +242,8 @@ Util.randomPair = function(keys, vals) {
     let exclude = {};
 
     let n = Math.min(keys.length, vals.length);
-    keys.splice(n);
-    vals.splice(n);
-    console.log(keys, n, vals);
+    //keys.splice(n);
+    //vals.splice(n);
 
     for (let k of keys) {
         let [val, idx]  = Util.randomSelect(vals, exclude);
@@ -321,4 +340,3 @@ function leftBind(module, obj) {
 }
 
 module.exports = Util; 
-

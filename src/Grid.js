@@ -45,8 +45,12 @@ let M = {
         
         onTileDown=({x, y})=>console.log("tile down: ", x, y),
         //onTileUp=({x, y})=>console.log("tile up: ", x, y),
-        onTileDrag=({x, y}, {x:x_, y:y_})=>console.log("drag: ", x, y, "->", x_, y_),
-        onTileDragging=({x, y}, {x:x_, y:y_})=>console.log("dragging: ", x, y, "->", x_, y_),
+        onTileDrag=(pos, pos_, dir)=> {
+            console.log("drag: ", pos, "->", pos_, ", dir: ", dir.x, dir.y);
+        },
+        onTileDragging=(pos, pos_, dir)=> {
+            //console.log("dragging: ", pos, "->", pos_, ", dir: ", dir);
+        },
         onTileClick=({x, y})=>console.log("tile click: ", x, y),
         onTileOut=({x, y})=>console.log("tile out: ", x, y),
 
@@ -488,10 +492,7 @@ let M = {
     } = {}) {
         return M.performBlockAction(self, 
             null,
-            _ => self.gameArray.dropVertical({
-                dir, 
-            })
-        );
+            _ => self.gameArray.dropVertical({ dir }));
     },
 
     dropHorizontal(self, {
@@ -502,6 +503,15 @@ let M = {
             _ => self.gameArray.dropHorizontal({
                 dir, 
             })
+        );
+    },
+
+    drop(self, {
+        dir
+    } = {}) {
+        return M.performBlockAction(self, 
+            null,
+            _ => self.gameArray.drop({ dir })
         );
     },
 

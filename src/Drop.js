@@ -51,9 +51,9 @@ let maxRows = (function() {
 
 let M = {
     create({
+        rows=20,
+        cols=10,
         algebra,
-        rows,
-        cols,
         tileSize,
         tileSpace,
         alpha,
@@ -129,6 +129,7 @@ let M = {
         } 
         setTimeout(loop, self.descendSpeed);
     },
+
     stopDescension(self) {
     },
 
@@ -342,5 +343,8 @@ let M = {
 M.new = Util.constructor(M);
 
 module.exports = M;
+
+
+
 
 

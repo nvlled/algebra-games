@@ -4,11 +4,19 @@ let PIXI = require("pixi.js");
 let M = {
     create({
         image,
-        tileWidth=32,
-        tileHeight=32,
+        tileWidth,
+        tileHeight,
+        cols, rows
     }) {
+        if (cols != null && tileWidth == null)
+            tileWidth = image.width/cols;
+        if (rows != null && tileHeight == null)
+            tileHeight = image.height/rows;
+
+        console.log(cols, rows, tileWidth, tileHeight);
+
         let textures = [];
-        let rows = 0;
+        rows = 0;
         let x = 0;
         let y = 0;
         while (y < image.height) {
@@ -21,7 +29,7 @@ let M = {
                 rows++;
             }
         }
-        let cols = textures.length/rows;
+        cols = textures.length/rows;
         return {
             textures,
             rows, cols,
