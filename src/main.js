@@ -19,8 +19,6 @@ let Grid = require("src/Grid");
 let Button = require("src/Button");
 let TextureSet = require("src/TextureSet");
 let AniSprite = require("src/AniSprite");
-let CharSprites = require("src/CharSprites");
-let CoinSprites = require("src/CoinSprites");
 
 let Drop = require("src/Drop");
 let Ten24 = require("src/Ten24");
@@ -28,13 +26,22 @@ let Sudoku = require("src/Sudoku");
 let PairSwap = require("src/PairSwap");
 let Checkers = require("src/Checkers");
 
-let charSprites = CharSprites.new();
-let coinSprites = CoinSprites.new();
+let CharSprites = require("src/CharSprites").new();
+let RpgSprites = require("src/RpgSprites").new();
+let CoinSprites = require("src/CoinSprites").new();
+let MonsterSprites = require("src/MonsterSprites").new();
+
+let Backgrounds = require("src/Backgrounds");
+let GridTiles = require("src/GridTiles");
 
 let renderer;
 async function setup() {
-    charSprites.loadTextures(PIXI.loader);
-    coinSprites.loadTextures(PIXI.loader);
+    CharSprites.loadTextures(PIXI.loader);
+    CoinSprites.loadTextures(PIXI.loader);
+    MonsterSprites.loadTextures(PIXI.loader);
+    RpgSprites.loadTextures(PIXI.loader);
+    Backgrounds.loadTextures(PIXI.loader);
+    GridTiles.loadTextures(PIXI.loader);
 
     renderer = PIXI.autoDetectRenderer(1000, 800);
     renderer.options.antialias = true;
@@ -51,22 +58,22 @@ async function setup() {
         //.use((_, next) => {
         //    setTimeout(next, 1000+Math.random()*3000);
         //})
-        .add("bg1", "images/cyberglow.png")
-        .add("bg2", "images/starfield2.jpg")
-        .add("bg3", "images/tron.png")
-        .add("bg4", "images/backdrop.png")
-        .add("bg5", "images/sky5.png")
-        .add("cell1", "images/Ground/ground_04.png")
-        .add("cell2", "images/Ground/ground_01.png")
-        .add("cell3", "images/Ground/ground_02.png")
-        .add("cell4", "images/Ground/ground_05.png")
-        .add("fireball", "images/fireball.png")
+        //.add("bg1", "images/cyberglow.png")
+        //.add("bg2", "images/starfield2.jpg")
+        //.add("bg3", "images/tron.png")
+        //.add("bg4", "images/backdrop.png")
+        //.add("bg5", "images/sky5.png")
+        //.add("cell1", "images/Ground/ground_04.png")
+        //.add("cell2", "images/Ground/ground_01.png")
+        //.add("cell3", "images/Ground/ground_02.png")
+        //.add("cell4", "images/Ground/ground_05.png")
+        //.add("cell5", "images/metile.png")
 
+        .add("fireball", "images/fireball.png")
         .add("people", "images/people.png")
         .add("equals", "images/equals.png")
         .add("cat", "images/cat.png")
         .add("blob", "images/blob.png")
-        .add("metile", "images/metile.png")
 
         .load(main);
 }
@@ -134,11 +141,99 @@ function main() {
             PIXI.SCALE_MODES.NEAREST;
     }
 
-    //let tset = TextureSet.new({
-    //    image: resources["people"].texture,
-    //    tileWidth: 48,
-    //    tileHeight: 51.0,
-    //});
+    let params = Util.parseQueryParams(window.location.search);
+    let name = params["game"];
+
+    let games = {
+        Drop: {
+            module: require("src/Drop"),
+            showTable: true,
+            tileSize: 35,
+            tileSpace: 1,
+        },
+        Ten24: {
+            module: require("src/Ten24"),
+            showTable: true,
+            tileSize: 64,
+            tileSpace: 1,
+        },
+        Sudoku: {
+            module: require("src/Sudoku"),
+            showTable: false,
+            tileSize: 64,
+            tileSpace: 10,
+        },
+        PairSwap: {
+            module: require("src/PairSwap"),
+            showTable: true,
+            tileSize: 64,
+            tileSpace: 10,
+        },
+        Checkers: {
+            module: require("src/Checkers"),
+            showTable: true,
+            tileSize: 64,
+            tileSpace: 10,
+        },
+    }
+    {
+        let ul = document.querySelector("ul.games");
+        ul.innerHTML = "";
+        for (let [name] of Object.entries(games)) {
+            let li = document.createElement("li");
+            let a = document.createElement("a");
+            a.href = "?game="+name;
+            a.textContent = name;
+            li.appendChild(a);
+            ul.appendChild(li);
+        }
+    }
+
+
+    let args = games[name];
+    if (!args) {
+        console.log("unkown game: ", name);
+        return;
+    }
+    let {algebra, table} = initAlgebra({resources});
+    console.log(algebra.textures);
+
+    // TODO: tile background image
+    // TODO: Use shaders for fade in/out effects
+    let Game = args.module;
+
+    //let [tilename] = Util.randomSelect(["cell1","cell2","cell3","cell4", "cell5"]);
+    let tileTexture = GridTiles.randomTexture(resources);
+
+    let game = Game.new({
+        algebra,
+        tileSize: args.tileSize,
+        tileSpace: args.tileSpace,
+        alpha: 0.8,
+        tileMap: _=> tileTexture,
+    });
+    game.start();
+
+    if (args.showTable) {
+        game.grid.y = renderer.height/2 - game.grid.height/2;
+        game.grid.x = renderer.width/2 - game.grid.width/2 - table.grid.width/2;
+        table.grid.x = game.grid.x + game.grid.width;
+        table.grid.y = game.grid.y;
+    } else {
+        game.grid.y = renderer.height/2 - game.grid.height/2;
+        game.grid.x = renderer.width/2 - game.grid.width/2;
+    }
+
+    var bg = Backgrounds.random(resources);
+    bg.width = renderer.width;
+    bg.height = renderer.height;
+
+    gameStage.addChild(bg);
+    gameStage.addChild(table.grid);
+    gameStage.addChild(game.grid);
+}
+
+function initAlgebra({resources}) {
     let algebra = Algebra.new({
         identity: 'e',
         //table: randomTable(["a", "b", "c", "d", "e"]),
@@ -150,9 +245,8 @@ function main() {
             ["c", "c", "b"],
         ],
     });
-    console.log(algebra.table);
 
-    let [factory] = Util.randomSelect([charSprites, coinSprites]);
+    let [factory] = Util.randomSelect([CharSprites, MonsterSprites, RpgSprites]);
     let galge = GraphicAlgebra.new({
         algebra,
         textures: Object.assign(
@@ -166,23 +260,17 @@ function main() {
         //    { equals: resources["equals"].texture }
         //)
     });
-
-    let gameState = {renderer, gameStage, algebra: galge};
-    let params = Util.parseQueryParams(window.location.search);
-    // let game = null
-    switch (params["game"]) {
-        case "drop":   dropGame(gameState);   break;
-        case "ten24":  ten24Game(gameState); break;
-        case "sadaku": sudokuGame(gameState); break;
-        case "pairswap": pairSwapGame(gameState); break;
-        case "checkers": checkersGame(gameState); break;
-    }
-    // game.start()
-    if (params["game"])
-        document.querySelector(".game-title").textContent = 
-            "game: " + params["game"];
-    else
-        renderer.view.remove();
+    let table = GraphicTable.new(galge, {
+        x: 50, y: 10,
+        tileSize: 32,
+        tileSpace: 0.1,
+        stretch: 0.9,
+        //equals: resources["equals"].texture,
+        tileMap: function(x, y, id) {
+            return null;
+        },
+    });
+    return {algebra: galge, table: table};
 }
 
 function randomTable(elems, n=elems.length) {
