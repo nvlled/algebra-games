@@ -24,6 +24,21 @@ let M = {
         });
     },
 
+    boom(sprite, args) {
+        let seconds = 0.5;
+        let n = 100+Math.random()*100;
+        let m = 10+Math.random()*10;
+        M.rotate(sprite, {end: 25+Math.random()*25, seconds});
+        M.move(sprite, {end: Vec.random().mul(n),
+                        seconds, easeFn: EasingFn.outQuint});
+        M.scale(sprite, {end: Vec.new({x: m, y: m}), seconds});
+        M.fade(sprite, {end: 0, seconds: seconds*2});
+    },
+
+    move(sprite, args) {
+        return M.vecLerp(sprite, "position", args);
+    },
+
     scale(sprite, args) {
         return M.vecLerp(sprite, "scale", args);
     },
@@ -37,7 +52,7 @@ let M = {
     },
 
     squeezeIn(sprite, args) {
-        args.end = Vec.new({x: 0.1, y: sprite.scale.y});
+        args.end = Vec.new({x: 0.05, y: sprite.scale.y});
         return M.vecLerp(sprite, "scale", args);
     },
     squeezeOut(sprite, args) {
@@ -48,7 +63,7 @@ let M = {
 
     vecLerp(sprite, prop, {
         start, end, 
-        seconds,
+        seconds=0.5,
         speed,
         easeFn=EasingFn.linear,
         fn=O=>O,
@@ -81,13 +96,13 @@ let M = {
 
     scaLerp(sprite, prop, {
         start, end, 
-        seconds,
+        seconds=0.5,
         speed,
         easeFn=EasingFn.linear,
     }) {
         let d = dist(start, end);
 
-        if (!start)
+        if (start == null)
             start = sprite[prop];
 
         if (speed == null)
@@ -105,7 +120,7 @@ let M = {
         return Util.doWhile((_, elapsed) => elapsed < millis, (_, elapsed) => {
             let t = intr.applyScalar(elapsed);
             sprite[prop] = intr.mapScalar(easeFn(t), start, end);
-        });
+        }).then(_=> sprite[prop] = end);
     },
 }
 module.exports = M;
