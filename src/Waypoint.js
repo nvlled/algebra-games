@@ -3,6 +3,7 @@ let Util = require("src/Util");
 let EasingFn = require("src/EasingFn");
 let Vec = require("src/Vec");
 let Interpol = require("src/Interpol");
+let Anima = require("src/Anima");
 
 let QUEUE = Symbol();
 let TICKER = Symbol();
@@ -51,65 +52,15 @@ let Waypoint = {
         loop();
     },
 
-    //start(sprite) {
-    //    if (sprite[TICKER])
-    //        return;
-    //    let tick = new PIXI.ticker.Ticker();
-    //    sprite[TICKER] = tick;
-
-    //    let queue = sprite[QUEUE];
-    //    if (queue.length == 0)
-    //        return;
-
-    //    function stuffs() {
-    //        let stepSize = sprite[STEP];
-    //        let [destPos, size, marker, easeFn] = queue.shift();
-    //        if (size)
-    //            stepSize = size;
-    //        let dir = Vec.new(destPos).sub(sprite.position);
-    //        let dist = dir.len();
-    //        //dir.norm().mul(stepSize);
-    //        dir.norm();
-    //        return [dir, dist, destPos, stepSize, marker, easeFn];
-    //    }
-
-    //    let [dir, dist, destPos, stepSize, marker, easeFn] = stuffs();
-
-    //    let time = 0;
-    //    tick.add(dt => {
-    //        time += dt/10;
-
-    //        let v = dir.new().mul(easeFn(time));
-    //        console.log(dir.dot(destPos));
-    //        Vec.add(sprite.position, v);
-
-    //        //dist -= v.len();
-    //        dist = Vec.new(sprite.position).sub(destPos).len();
-    //        if (dist <= 0) {
-    //            sprite.parent.removeChild(marker);
-    //            //sprite.position = destPos;
-    //            if (queue.length == 0) {
-    //                sprite[TICKER] = null;
-    //                tick.stop()
-    //            } else {
-    //                [dir, dist, destPos, stepSize, marker, easeFn] = stuffs();
-    //            }
-    //        }
-    //    });
-    //    tick.start();
-    //},
-
     pause(sprite) {
         if (sprite[TICKER])
             sprite[TICKER].stop();
     },
 
-    // !!!!!!!!!!!
-    // TODO: use Anima
     move(sprite, {
         pos, 
-        seconds=null, 
-        speed=250,// pixels per second
+        seconds=0.2, 
+        speed=250,
         ticker, 
         easeFn=null,
     }) {
@@ -124,42 +75,12 @@ let Waypoint = {
             ownTicker = true;
         }
 
-        //let stepSize = 3;
-        let dir = Vec.new(pos).sub(sprite.position);
-        let dist = dir.len();
-
-        if (seconds == null)
-            seconds = dist/speed;
-
-        let elapsed = 0;
-        let spritePos = Vec.new(sprite.position);
-
-        let interpol = Interpol.new(0, seconds);
-
-        let promise = new Promise(function(resolve, reject) {
-            let loop  = _=> {
-                elapsed += ticker.elapsedMS/1000;
-                //let t = elapsed/seconds;
-                let t = interpol.applyScalar(elapsed);
-                //console.log(t, interpol(elapsed), "|", elapsed, seconds);
-                let x = easeFn(t);
-
-                let pos_ = spritePos.new().add(dir.new().mul(x));
-                sprite.position = pos_;
-
-                if (t >= 1 || !interpol.inrangeScalar(elapsed)) {
-                    ticker.remove(loop);
-                    if (ownTicker)
-                        ticker.stop();
-                    sprite.position = pos;
-                    resolve();
-                }
-            }
-            ticker.add(loop);
-            if (ownTicker)
-                ticker.start();
+        return Anima.move(sprite, {
+            end: pos,
+            speed,
+            seconds,
+            easeFn,
         });
-        return promise;
     },
 
     movePhys(self, {src, dest, }) {
@@ -191,10 +112,7 @@ let Waypoint = {
 
             Phys.applyForce(sprite, dir);
             Phys.update(sprite);
-            //v.x = sprite.x;
-            //v.y = sprite.y;
 
-            //let delta = Vec.len(Vec.sub(dst, sprite.position));
             let delta = dst.new().sub(sprite.position).len();
             if (delta == prevDelta) {
                 tick.stop();
