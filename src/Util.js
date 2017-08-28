@@ -228,8 +228,13 @@ Util.randomSelect = function(array, exclude={}, fail=true) {
     while (n) {
         let idx = Util.randomIndex(array);
         let x = array[idx];
-        if (!exclude[x] && !exclude[idx])
-            return [x, idx];
+        if (exclude instanceof WeakSet) {
+            if (!exclude.has(x) && !exclude.has(idx))
+                return [x, idx];
+        } else {
+            if (!exclude[x] && !exclude[idx])
+                return [x, idx];
+        }
         i++;
     }
     if (fail)
