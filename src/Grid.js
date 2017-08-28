@@ -19,8 +19,6 @@ let POS = Symbol("Tile Pos");
 
 let M = {
     new(...args) {
-        //return Util.prox(M.create(...args), M.Proto);
-        //return Util.prox(M.create(...args), M);
         return Util.wrap(M.create(...args), M.Proto);
     },
     create({
@@ -44,12 +42,10 @@ let M = {
         highlight=0xdd0000,
         
         onTileDown=({x, y})=>console.log("tile down: ", x, y),
-        //onTileUp=({x, y})=>console.log("tile up: ", x, y),
         onTileDrag=(pos, pos_, dir)=> {
             console.log("drag: ", pos, "->", pos_, ", dir: ", dir.x, dir.y);
         },
         onTileDragging=(pos, pos_, dir)=> {
-            //console.log("dragging: ", pos, "->", pos_, ", dir: ", dir);
         },
         onTileClick=({x, y})=>console.log("tile click: ", x, y),
         onTileOut=({x, y})=>console.log("tile out: ", x, y),
@@ -82,31 +78,24 @@ let M = {
                 sprite.y = (i * (tileHeight+tileSpace));
                 sprite[POS] = {x: j, y: i};
                 sprite.alpha = alpha;
-                //sprite.anchor.set(0.5);
+                sprite.anchor.set(0.5);
                 tiles.push(sprite);
-
             }
         }
 
         let gameArray = GameArray.new({rows, cols});
 
-        //container.x = x;
-        //container.y = y;
         Object.assign(container, {
             onTileClick,
             onTileDrag,
             onTileDragging,
             onTileDown,
-            //onTileUp,
             x, y,
             speed,
             cols, rows, 
             tileWidth, tileHeight, tileSpace,
             fit, stretch,
-            //tilesArray, 
             tiles,
-            //sprites: [],
-            //sprites: gameArray.data,
             gameArray,
             operations: [],
             actions: [],
@@ -143,14 +132,10 @@ let M = {
             tile.on("pointerupoutside", onUp);
             tile.on("pointerup", onClick);
             tile.on("pointermove", onMove);
-            console.log("down");
         }
         let onUp = function(e) {
             clearListeners(this);
             
-            console.log("up");
-            //self.onTileUp(start, end);
-
             if (end) { 
                 let dir = Vec.new(end).sub(start).norm();
                 self.onTileDrag(start, end, dir);
@@ -163,7 +148,6 @@ let M = {
 
         let onClick = function(e) {
             clearListeners(this);
-            console.log("click");
             self.onTileClick(this[POS]);
         }
 
@@ -300,11 +284,6 @@ let M = {
     },
 
     removeSprite(self, {x, y}) {
-        //let tile = M.tileAt(self, {x, y});
-        //if (!tile) 
-        //    return;
-        //let idx = y*self.cols + x;
-        //self.sprites[idx] = null;
         self.gameArray.remove({x, y});
     },
 
@@ -326,8 +305,6 @@ let M = {
         if (!sprite)
             return;
 
-        //if (self.gameArray.outbounds({x, y}))
-        //    return;
         if (sprite.parent == null)
             self.addChild(sprite);
 
@@ -335,6 +312,8 @@ let M = {
             sprite.width = tile.width * stretch;
             sprite.height = tile.height * stretch;
         }
+
+        sprite.anchor.set(0.5);
         let {x: sx, y: sy} = M.getSpritePos(self, {x, y, sprite});
         sprite.x = sx;
         sprite.y = sy;
@@ -344,14 +323,15 @@ let M = {
         let tile = M.tileAt(self, {x, y});
         if (!tile)
             return;
+
         let {x: ax, y: ay} = sprite && sprite.anchor || {x: 0, y: 0};
         let {x: baseX, y: baseY} = self;
         if (sprite.parent == self)
             [baseX, baseY] = [0, 0];
 
         return {
-            x: baseX + tile.x + ax*(tile.width) + (tile.width-sprite.width)/2,
-            y: baseY + tile.y + ay*(tile.height)+ (tile.height-sprite.height)/2,
+            x: baseX + tile.x,
+            y: baseY + tile.y,
         }
     },
 
@@ -363,19 +343,6 @@ let M = {
             ty+tile.height/2,
         );
     },
-
-    //addSprite(self, {x, y, sprite}) {
-    //    let tile = M.tileAt(self, {x, y});
-    //    if (tile) {
-    //        tile.addChild(sprite);
-    //    }
-    //},
-    //removeSprite(self, {x, y, sprite}) {
-    //    let tile = M.tileAt(self, {x, y});
-    //    if (tile) {
-    //        tile.removeChild(sprite);
-    //    }
-    //},
 
     tileAt(self, {x, y}) {
         let idx = y*self.cols + x;
@@ -419,7 +386,6 @@ let M = {
         let paths = action();
 
         if (paths.length > 0) {
-            //block.points = paths.map(([_, p]) => p);
             let promises =  [];
             let points_ = [];
             for (let path of paths) {
@@ -431,11 +397,9 @@ let M = {
             }
             return Promise.all(promises)
                 .then(_=> {
-                    //gameArray.detachPoints(block.points);
                     gameArray.apply(paths);
                     if (block)
                         block.points = points_;
-                    //M.insertBlock(self, block);
                     return Promise.resolve(points_);
                 });
         }
@@ -543,18 +507,12 @@ let M = {
         let pos = getpos(self, {sprite, x: src.x, y: src.y});
         let pos_ = getpos(self, {sprite, x: dest.x, y: dest.y});
         return Waypoint.move(sprite, {pos: pos_, speed: self.speed});
-            //.then(_=> {
-            //    //M.removeSprite(self, src);
-            //    //M.setSprite(self, {sprite, x: dest.x, y: dest.y});
-            //});
     },
 
     placeSprite(self, {sprite, dest}) {
         let getpos = M.getSpritePos;
         let pos = getpos(self, {sprite, x: dest.x, y: dest.y});
         let i = M.indexOfSprite(self, sprite);
-        //if (i >= 0)
-        //    self.sprites[i] = null;
         Waypoint.move(sprite, {pos})
             .then(_=> M.setSprite(self, {sprite, x: dest.x, y: dest.y}));
     },
@@ -581,55 +539,18 @@ let M = {
 
     globalToGridPos(self, {x, y}) {
         let {x: bx, y: by} = self;
-        let {tileWidth, tileSpace} = self;
-        x = Math.floor((x - bx)/(tileWidth+tileSpace));
-        y = Math.floor((y - by)/(tileWidth+tileSpace));
+        let {tileWidth, tileHeight, tileSpace} = self;
+        x = Math.floor((x - bx + tileWidth*.5)/(tileWidth+tileSpace));
+        y = Math.floor((y - by + tileHeight*.5)/(tileHeight+tileSpace));
         if (self.gameArray.outbounds({x, y}))
             return null;
         return {x, y};
     },
-
-    //get X() { }
-    //set X() { }
-    //X: __(function(self, v) {  ... }),
-    //
-    // M.X()
-    // M.X(v)
-    // let m = M.create()
-    // m.X()
-    // m.X(v)
-    //
-    // m.X = v
-
-    //getXY(i, j) {
-    //},
 }
 
 M.Proto = Util.prototypify(M);
 
-//M.Pos = {
-//    create(i, j) {
-//        let v = new Vec.create(i, j);
-//        let m = {
-//            get i()  { return v.y; },
-//            get j()  { return v.x; },
-//            get x()  { return v.x; },
-//            get y()  { return v.y; },
-//            set i(n) { return v.y = n; },
-//            set j(n) { return v.x = n; },
-//            set y(n) { return v.y = n; },
-//            set x(n) { return v.x = n; },
-//            toString() { return `GridPos(${m.y}, ${m.x})`},
-//        }
-//        Object.setPrototypeOf(m, v);
-//        return m;
-//        return new Proxy(
-//            new Vec.create(i, j),
-//            {
-//
-//            }
-//        );
-//    },
-//}
-
 module.exports = M;
+
+
+
