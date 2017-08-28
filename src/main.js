@@ -34,6 +34,8 @@ let MonsterSprites = require("src/MonsterSprites").new();
 let Backgrounds = require("src/Backgrounds");
 let GridTiles = require("src/GridTiles");
 
+window.globals = {};
+
 let renderer;
 async function setup() {
     CharSprites.loadTextures(PIXI.loader);
@@ -58,17 +60,6 @@ async function setup() {
         //.use((_, next) => {
         //    setTimeout(next, 1000+Math.random()*3000);
         //})
-        //.add("bg1", "images/cyberglow.png")
-        //.add("bg2", "images/starfield2.jpg")
-        //.add("bg3", "images/tron.png")
-        //.add("bg4", "images/backdrop.png")
-        //.add("bg5", "images/sky5.png")
-        //.add("cell1", "images/Ground/ground_04.png")
-        //.add("cell2", "images/Ground/ground_01.png")
-        //.add("cell3", "images/Ground/ground_02.png")
-        //.add("cell4", "images/Ground/ground_05.png")
-        //.add("cell5", "images/metile.png")
-
         .add("fireball", "images/fireball.png")
         .add("people", "images/people.png")
         .add("equals", "images/equals.png")
@@ -116,7 +107,7 @@ function showLoadingStatus() {
     ticker.add(loop);
     ticker.start();
     PIXI.loader.onProgress.add(loader => {
-        loadText.text = "[loading " + PIXI.loader.progress + "%]";
+        loadText.text = "[loading " + Math.floor(PIXI.loader.progress) + "%]";
         renderer.render(loadingScreen);
     });
     PIXI.loader.onComplete.add(loader => {
@@ -155,7 +146,7 @@ function main() {
             module: require("src/Ten24"),
             showTable: true,
             tileSize: 64,
-            tileSpace: 1,
+            tileSpace: 3,
         },
         Sudoku: {
             module: require("src/Sudoku"),
@@ -171,6 +162,12 @@ function main() {
         },
         Checkers: {
             module: require("src/Checkers"),
+            showTable: true,
+            tileSize: 64,
+            tileSpace: 1,
+        },
+        Memrise: {
+            module: require("src/Memrise"),
             showTable: true,
             tileSize: 64,
             tileSpace: 10,
@@ -196,13 +193,11 @@ function main() {
         return;
     }
     let {algebra, table} = initAlgebra({resources});
-    console.log(algebra.textures);
 
     // TODO: tile background image
     // TODO: Use shaders for fade in/out effects
     let Game = args.module;
 
-    //let [tilename] = Util.randomSelect(["cell1","cell2","cell3","cell4", "cell5"]);
     let tileTexture = GridTiles.randomTexture(resources);
 
     let game = Game.new({
@@ -229,8 +224,9 @@ function main() {
     bg.height = renderer.height;
 
     gameStage.addChild(bg);
-    gameStage.addChild(table.grid);
     gameStage.addChild(game.grid);
+    if (args.showTable)
+        gameStage.addChild(table.grid);
 }
 
 function initAlgebra({resources}) {
@@ -262,9 +258,9 @@ function initAlgebra({resources}) {
     });
     let table = GraphicTable.new(galge, {
         x: 50, y: 10,
-        tileSize: 32,
+        tileSize: 45,
         tileSpace: 0.1,
-        stretch: 0.9,
+        stretch: 0.8,
         //equals: resources["equals"].texture,
         tileMap: function(x, y, id) {
             return null;
@@ -1481,5 +1477,4 @@ function topLeftPos(obj) {
     return Vec.create(x, y);
 }
 window.onload = setup
-
 

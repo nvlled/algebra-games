@@ -33,8 +33,8 @@ let M = {
         return self.algebra.randomElement(withIdentity);
     },
 
-    randomSprite(self) {
-        return M.createSprite(self, M.randomElement(self));
+    randomSprite(self, withIdentity) {
+        return M.createSprite(self, M.randomElement(self, withIdentity));
     },
 
     getTexture(self, elem) {

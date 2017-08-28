@@ -1,5 +1,6 @@
 
 let Actions = require("src/Actions");
+let Anima = require("src/Anima");
 let Waypoint = require("src/Waypoint");
 let EasingFn = require("src/EasingFn");
 let Util = require("src/Util");
@@ -19,7 +20,7 @@ let M = {
         tileMap,
         x, y,
         speed=900,
-        stretch,
+        stretch=.7,
         onGameOver=()=>{},
     } = {}) {
         let grid = Grid.new({
@@ -60,14 +61,7 @@ let M = {
         right.press = () => M.moveRight(self);
         self.initialized = true;
 
-        // TODO: should combine all combinable elements,
-        // not just the ones that moved
-        
         self.actions.onPerform = async function(_) {
-            //let points = self.grid.gameArray.data;
-
-            //if (!points)
-                //return;
             let promises = [];
             let {cols, rows} = self.grid;
             let spriteset = new WeakSet();
@@ -85,13 +79,10 @@ let M = {
                         continue
                     }
 
-                    //spriteset.add(sprite2);
-
                     let sprite3 = self.algebra.applySprites(sprite1, sprite2);
                     if (!sprite3) 
                         continue;
 
-                    //promises.push(self.grid.move({src: p, dest: p_, force: true})
                     await self.grid.move({src: p, dest: p_, force: true})
                             .then(_=> {
                                 self.grid.removeSprite(p_);
@@ -103,14 +94,8 @@ let M = {
                                     self.grid.setSprite({sprite: sprite3, x: p_.x, y: p_.y});
                                 } else {
                                     sprite1.destroy();
-                                    Waypoint.move(sprite2, 
-                                            {
-                                                pos: Vec.random().mul(1000), 
-                                                easeFn: EasingFn.outElastic,
-                                                seconds: 4,
-                                            }).then(_=> sprite2.destroy());
+                                    Anima.boom(sprite2);
                                 }
-                            //}));
                             });
                     await self.grid.drop({dir: self.lastDir});
                 }

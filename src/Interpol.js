@@ -5,7 +5,7 @@ let {sqrt, pow} = Math;
 let distScalar = (a, b) => sqrt(pow(a-b, 2));
 let distVector = (a, b) => Vec.new(a).sub(b).len();
 
-let sign = n => Math.sqrt(n*n)/n;
+let sign = n => n==0 ? 0 : Math.sqrt(n*n)/n;
 
 let M = {
     create(a, b) {

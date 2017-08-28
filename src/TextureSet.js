@@ -13,8 +13,6 @@ let M = {
         if (rows != null && tileHeight == null)
             tileHeight = image.height/rows;
 
-        console.log(cols, rows, tileWidth, tileHeight);
-
         let textures = [];
         rows = 0;
         let x = 0;

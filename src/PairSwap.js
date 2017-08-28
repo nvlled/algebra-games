@@ -78,6 +78,9 @@ let M = {
 
             if (!dir)
                 return;
+            if (Vec.isZero(dir))
+                return;
+
             let p = Vec.new(pos).add(dir);
             if (destTile)
                 destTile.tint = 0xffffff;
@@ -174,7 +177,6 @@ let M = {
             return elem == alg.getElem(sprite_);
 
         });
-        console.log(elem, row);
         if (row.length > 1)
             self.grid.hightlightTiles(row, 0xff0000); 
         if (col.length > 1)
