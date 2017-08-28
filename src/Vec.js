@@ -52,6 +52,13 @@ let Vec = {
         return Vec.mul(v, -1);
     }),
 
+    idiv: __w(function(v, n) {
+        v.x = Math.floor(v.x/n);
+        v.y = Math.floor(v.y/n);
+        v.z = Math.floor(v.z/n) || 0;
+        return v;
+    }),
+
     mul: __w(function(v, n) {
         v.x *= n;
         v.y *= n;
@@ -68,6 +75,11 @@ let Vec = {
 
     len: __w(function(v) {
         return Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+    }),
+
+    dist: __w(function(v, w) {
+        let abs = Math.abs;
+        return abs(v.x-w.x) + abs(v.y-w.y);
     }),
 
     norm: __w(function(v) {
@@ -167,6 +179,8 @@ let Vec = {
         let {x, y, z} = v;
         let {x: x_, y: y_, z: z_} = w;
         let f = Math.floor;
+        if (w.z == null)
+            return f(x) == f(x_) && f(y) == f(y_);
         return f(x) == f(x_) && f(y) == f(y_) && f(z) == f(z_);
     },
 
@@ -193,7 +207,7 @@ let Vec = {
     random(withZ=false) {
         while (true) {
             let [x] = Util.randomSelect([1, 0, -1]);
-            let [y] = Util.randomSelect([1, 0, -1]);
+            let [y] = Util.randomSelect([-1, 0, 1]);
             let [z] = Util.randomSelect([1, 0, -1]);
             if (withZ) {
                 if (x == 0 && y == 0 && z == 0)
