@@ -112,6 +112,9 @@ let M = {
                 let zSprite = self.algebra.applySprites(sprite, sprite_);
                 self.grid.setSprite({sprite, x: srcPos.x, y: srcPos.y});
                 if (zSprite) {
+                    zSprite[TEAM] = sprite[TEAM];
+                    M.tintSprite(self, zSprite);
+
                     Anima.boom(sprite_);
                     await self.grid.move({src: srcPos, dest: dstPos});
                     self.grid.removeSprite(pos_);
@@ -253,7 +256,7 @@ let M = {
         let rows = (grid.rows/2)-1;
         let cols = grid.cols;
 
-        let fill = (startRow, team) => {
+        let fill = (startRow, team, tint) => {
             for (let y = startRow; y < startRow+rows; y++) {
                 let x = 0;
                 if (y%2 != 0)
@@ -261,6 +264,7 @@ let M = {
                 for (; x < cols; x+=2) {
                     let sprite = algebra.randomSprite(false);
                     sprite[TEAM] = team;
+                    M.tintSprite(self, sprite);
                     grid.setSprite({sprite, x, y});
                 }
             }
@@ -282,7 +286,14 @@ let M = {
             key.unlisten();
         }
     },
+    tintSprite(self, sprite) {
+        if (sprite[TEAM] == TEAM1)
+            sprite.tint = 0xee7777;
+        else
+            sprite.tint = 0x7777ee;
+    }
 
 }
+
 M.new = Util.constructor(M);
 module.exports = M;
