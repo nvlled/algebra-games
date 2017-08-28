@@ -55,7 +55,7 @@ let M = {
     init(self) {
         self.grid.onTileClick = ({x, y}) => {
             let {grid} = self;
-            if (self.fixed[grid.gameArray.index({x, y})])
+            if (self.fixed[grid.gameArray.indexOf({x, y})])
                 return;
 
             let prevSprite = self.grid.spriteAt({x, y});

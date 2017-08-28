@@ -571,6 +571,10 @@ let M = {
         }
     },
 
+    indexOf(self, {x, y}) {
+        return self.gameArray.indexOf({x, y});
+    },
+
     isFull(self) {
         return self.gameArray.isFull();
     },

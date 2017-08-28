@@ -134,9 +134,9 @@ let M = {
         apply=false
     } = {}) {
         let pointset = {};
-        points.forEach(p => pointset[M.index(self, p)] = true);
+        points.forEach(p => pointset[M.indexOf(self, p)] = true);
         let points_ = points.map(p => p.new().add(dir));
-        let occupied = p => M.isOccupied(self, p) && !pointset[M.index(self, p)]
+        let occupied = p => M.isOccupied(self, p) && !pointset[M.indexOf(self, p)]
         if (points_.some(occupied)) {
             return [];
         }
@@ -174,7 +174,7 @@ let M = {
     } = {}) {
 
         let pointset = {};
-        points.forEach(p => pointset[M.index(self, p)] = true);
+        points.forEach(p => pointset[M.indexOf(self, p)] = true);
 
         // group by X=dot(rotate(dir), pos)
         // sort descending group by Y=dot(pos)
@@ -192,7 +192,7 @@ let M = {
             let head_ = Vec.new(head).add(dir);
             //if (!M.isOccupied(self, head_)) {
             if (!M.isOccupied(self, head_) ||
-                    pointset[M.index(self, head_)]) {
+                    pointset[M.indexOf(self, head_)]) {
                 //group.forEach(p => {
                 for (let p of group) {
                     let i = p[GROUPIDX];
@@ -257,8 +257,8 @@ let M = {
             return [];
         }
         let pointset = {};
-        points.forEach(p => pointset[M.index(self, p)] = true);
-        let occupied = p => M.isOccupied(self, p) && !pointset[M.index(self, p)]
+        points.forEach(p => pointset[M.indexOf(self, p)] = true);
+        let occupied = p => M.isOccupied(self, p) && !pointset[M.indexOf(self, p)]
 
         let points_ = [];
         let rotate = Vec["rotate"+(dir > 0 ? "Right" : "Left")];
@@ -277,7 +277,7 @@ let M = {
         return points_;
     },
 
-    index(self, {x, y}) {
+    indexOf(self, {x, y}) {
         if (M.outbounds(self, {x, y}))
             return -1;
         return y*self.cols + x;
@@ -286,12 +286,12 @@ let M = {
     get(self, {x, y}) {
         if (M.outbounds(self, {x, y}))
             return self.nil;
-        let i = M.index(self, {x, y});
+        let i = M.indexOf(self, {x, y});
         return self.data[i];
     },
 
     set(self, {x, y}, item) {
-        let i = M.index(self, {x, y});
+        let i = M.indexOf(self, {x, y});
         if (i >= 0)
             self.data[i] = item;
     },
@@ -299,7 +299,7 @@ let M = {
     remove(self, {x, y}) {
         if (M.outbounds(self, {x, y}))
             return;
-        let i = M.index(self, {x, y});
+        let i = M.indexOf(self, {x, y});
         self.data[i] = self.nil;
     },
 
@@ -342,7 +342,7 @@ let M = {
     apply(self, paths) {
         //let vals = [];
         //for (let [{x, y}, {x: x_, y: y_}] of paths) {
-        //    let i = M.index(self, {x, y});
+        //    let i = M.indexOf(self, {x, y});
         //    vals[i] = self.data[i];
         //}
 
@@ -358,8 +358,8 @@ let M = {
         //    //if (!p)
         //    //    continue;
         //    [{x, y}, {x: x_, y: y_}] = p
-        //    let i = M.index(self, {x, y});
-        //    let j = M.index(self, {x: x_, y: y_});
+        //    let i = M.indexOf(self, {x, y});
+        //    let j = M.indexOf(self, {x: x_, y: y_});
         //    dests[j] = true;
 
         //    //let val = vals[i];
