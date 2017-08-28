@@ -25,14 +25,14 @@ let M = {
         }
     },
 
-    randomName() { return Util.randomSelect(bgnames)[0]; },
+    randomName(exclude) { return Util.randomSelect(bgnames, exclude)[0]; },
 
-    randomTexture(resources) {
-        return resources[M.randomName()].texture;
+    randomTexture(resources, exclude) {
+        return resources[M.randomName(exclude)].texture;
     },
 
-    random(resources) {
-        return new PIXI.Sprite(resources[M.randomName()].texture);
+    random(resources, exclude) {
+        return new PIXI.Sprite(resources[M.randomName(exclude)].texture);
     },
 }
 
