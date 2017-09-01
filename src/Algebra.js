@@ -5,8 +5,7 @@ let concat = (...args) => args.join(SEP);
 
 let M = {
     create({
-        //elems= [],
-        identity = "0",
+        identity,
         table = [],
         strict = false,
         abelian = true,
@@ -36,7 +35,10 @@ let M = {
         for (let [x] of elemSet.entries()) {
             elems.push(x);
         }
-        elems.push(identity);
+        if (identity == null)
+            identity = elems[0];
+        else
+            elems.push(identity);
 
         let arglens = [];
         for (let [x] of arglenSet.entries()) {
