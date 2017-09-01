@@ -87,6 +87,10 @@ let M = {
     },
 
     init(self) {
+        if (self.initialized)
+            return;
+        self.initialized = true;
+
         self.keys.left.press  = e=>M.moveLeft(self);
         self.keys.right.press = e=>M.moveRight(self);
         self.keys.up.press    = e=>M.rotate(self);
@@ -134,9 +138,7 @@ let M = {
     },
 
     async start(self) {
-        if (!self.initialized) {
-            M.init(self);
-        }
+        M.init(self);
         self.running = true;
         M.listenKeys(self);
 

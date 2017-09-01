@@ -51,6 +51,10 @@ let M = {
     },
 
     init(self) {
+        if (self.initialized)
+            return;
+        self.initialized = true;
+
         let srcTile = null;
         let destTile = null;
 

@@ -53,6 +53,10 @@ let M = {
     },
 
     init(self) {
+        if (self.initialized)
+            return;
+        self.initialized = true;
+
         self.grid.onTileClick = ({x, y}) => {
             let {grid} = self;
             if (self.fixed[grid.gameArray.indexOf({x, y})])

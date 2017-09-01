@@ -58,6 +58,9 @@ let M = {
     },
 
     async init(self) {
+        if (self.initialized)
+            return;
+        self.initialized = true;
         let paramCount = 2;
         let shownTiles = [];
         let indices = {};
