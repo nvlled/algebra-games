@@ -111,6 +111,7 @@ let M = {
     setInteractive(self) {
         let start = null;
         let end = null;
+        let dir = null;
 
         function clearListeners(sprite) {
             sprite.removeListener("pointerupoutside", onUp);
@@ -118,7 +119,6 @@ let M = {
             sprite.removeListener("pointermove", onMove);
         }
         let onMove = function(e){
-            let dir = null;
             end = M.globalToGridPos(self, e.data.global);
             if (end)
                 dir = Vec.new(end).sub(start).norm();
@@ -128,6 +128,7 @@ let M = {
             let tile = this;
             start = tile[POS];
             end = start;
+            dir = {x: 0, y: 0};
             self.onTileDown(start);
             tile.on("pointerupoutside", onUp);
             tile.on("pointerup", onClick);
@@ -137,10 +138,9 @@ let M = {
             clearListeners(this);
             
             if (end) { 
-                let dir = Vec.new(end).sub(start).norm();
                 self.onTileDrag(start, end, dir);
             } else {
-                self.onTileDrag(start, null, null);
+                self.onTileDrag(start, null, dir);
             }
 
             start = end = null;
