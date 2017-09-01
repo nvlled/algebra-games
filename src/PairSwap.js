@@ -1,5 +1,6 @@
 
 let Waypoint = require("src/Waypoint");
+let Anima = require("src/Anima");
 let Util = require("src/Util");
 let Vec = require("src/Vec");
 let Grid = require("src/Grid");
@@ -131,12 +132,7 @@ let M = {
                         grid.removeSprite(pos_);
                         if (algebra.getElem(sprite__) == algebra.algebra.identity) {
                             for (let s of [sprite, sprite_]) {
-                                Waypoint.move(s, 
-                                        {
-                                            pos: Vec.random().mul(1000), 
-                                            easeFn: EasingFn.outElastic,
-                                            seconds: 4,
-                                        }).then(_=> s.destroy());
+                                Anima.boom(s);
                             }
                         } else {
                             sprite.destroy();

@@ -1,5 +1,7 @@
 
 let Actions = require("src/Actions");
+let Algebra = require("src/Algebra");
+let GraphicAlgebra = require("src/GraphicAlgebra");
 let Anima = require("src/Anima");
 let Waypoint = require("src/Waypoint");
 let Util = require("src/Util");
@@ -13,8 +15,8 @@ let PIXI = require("pixi.js");
 let GridTiles = require("src/GridTiles");
 
 let TEAM = Symbol();
-let TEAM1 = Symbol();
-let TEAM2 = Symbol();
+let TEAM1 = Symbol("T1");
+let TEAM2 = Symbol("T2");
 
 let M = {
     create({
@@ -77,6 +79,8 @@ let M = {
     },
 
     async init(self) {
+        M.setupTextures(self);
+
         self.grid.onTileClick = (pos) => {
             for (let p of points) {
                 self.grid.tileAt(p).tint = 0xffffff;
@@ -109,11 +113,12 @@ let M = {
             let sprite_ = self.grid.spriteAt(pos_);
             if (sprite_ && Vec.dist(dstPos, srcPos) == 4) {
 
+                // TODO: add textures for z or team3
                 let zSprite = self.algebra.applySprites(sprite, sprite_);
                 self.grid.setSprite({sprite, x: srcPos.x, y: srcPos.y});
                 if (zSprite) {
                     zSprite[TEAM] = sprite[TEAM];
-                    M.tintSprite(self, zSprite);
+                    //M.tintSprite(self, zSprite);
 
                     Anima.boom(sprite_);
                     await self.grid.move({src: srcPos, dest: dstPos});
@@ -141,13 +146,6 @@ let M = {
                     break;
                 }
             }
-
-            //let sprite = self.algebra.randomSprite();
-            //self.grid.setSprite({sprite, x: pos.x, y: pos.y});
-            //Anima.fade(sprite, {
-            //    end: 1, start: 0,
-            //    seconds: 3,
-            //});
         }
     },
 
@@ -175,49 +173,61 @@ let M = {
         return points;
     },
 
-    // TODO:
-    checkTiles(self, pos) {
-        let {grid} = self;
-
-        let row = grid.getRow(pos.y, false);
-        let col = grid.getColumn(pos.x, false);
-
-        let sprite = self.grid.spriteAt(pos); 
-        if (!sprite)
-            return;
-
-        grid.clearHighlights(row);
-        grid.clearHighlights(col);
-
-        let alg = self.algebra;
-        let elem = alg.getElem(sprite);
-        row = row.filter(pos_ => {
-            let sprite_ = grid.spriteAt(pos_);
-            //return elem == alg.getElem(sprite_) && sprite != sprite_;
-            return elem == alg.getElem(sprite_);
-
-        });
-        col = col.filter(pos_ => {
-            let sprite_ = grid.spriteAt(pos_);
-            return elem == alg.getElem(sprite_);
-
-        });
-        if (row.length > 1)
-            self.grid.hightlightTiles(row, 0xff8888); 
-        if (col.length > 1)
-            self.grid.hightlightTiles(col, 0xff8888); 
-    },
-
     newGame(self) {
         self.grid.clearSprites();
         M.start(self);
     },
 
     start(self) {
-        M.init(self);
-        //M.listenKeys(self);
-        //self.actions.start();
-        self.randomize();
+        M.randomize(self);
+    },
+
+    setupTextures(self) {
+        let MonsterSprites = require("src/MonsterSprites").new();
+        let CharSprites = require("src/CharSprites").new();
+
+        let nchars = 6;
+        let resources = PIXI.loader.resources;
+        let monsters = MonsterSprites.getConstructors(resources);
+        let chars = CharSprites.getConstructors(resources);
+        let elems = Util.alphanum.split("").slice(0, nchars);
+
+        let i = Math.floor(nchars/2);
+        self.team1Elems = elems.slice(0, i);
+        self.team2Elems = elems.slice(i);
+
+        let alg = Algebra.new({
+            table: M.randomTable(self),
+            abelian: false,
+        });
+
+        let team1 = Util.randomPair(self.team1Elems, monsters);
+        let team2 = Util.randomPair(self.team2Elems, chars);
+
+        let galge = GraphicAlgebra.new({
+            algebra: alg,
+            textures: Object.assign({}, team1, team2),
+        });
+        self.algebra = galge;
+    },
+
+    randomTable(self) {
+        let table = [];
+        let {team1Elems, team2Elems} = self;
+        let set1 = new Set(team1Elems);
+        let set2 = new Set(team2Elems);
+        let rand1 = _=> Util.randomSelect(team1Elems, set2)[0];
+        let rand2 = _=> Util.randomSelect(team2Elems, set1)[0];
+        for (let e of self.team1Elems) {
+            for (let e of self.team1Elems) {
+                table.push([e, rand2(), rand1()]);
+            }
+        }
+        for (let e of self.team2Elems) {
+            table.push([e, rand1(), rand2()]);
+        }
+        
+        return table;
     },
 
     stop(self) {
@@ -249,7 +259,6 @@ let M = {
         let {algebra, grid} = self;
         let filled = {};
         let retries = 128;
-
         let elems = algebra.getElems();
 
         self.fixed = {};
@@ -262,7 +271,10 @@ let M = {
                 if (y%2 != 0)
                     x++;
                 for (; x < cols; x+=2) {
-                    let sprite = algebra.randomSprite(false);
+                    let elems = team == TEAM1 ? 
+                        self.team1Elems : self.team2Elems;
+                    let [elem] = Util.randomSelect(elems);
+                    let sprite = algebra.createSprite(elem);
                     sprite[TEAM] = team;
                     M.tintSprite(self, sprite);
                     grid.setSprite({sprite, x, y});
@@ -292,7 +304,6 @@ let M = {
         else
             sprite.tint = 0x7777ee;
     }
-
 }
 
 M.new = Util.constructor(M);

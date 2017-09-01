@@ -222,13 +222,18 @@ Util.randomIndex = function(array) {
     return Math.floor(Math.random()*array.length);
 }
 
+Util.isSet = function(obj) {
+    return obj instanceof WeakSet ||
+        obj instanceof Set;
+}
+
 Util.randomSelect = function(array, exclude={}, fail=true) {
     let i = 0;
     let n = array.length*3;
     while (n) {
         let idx = Util.randomIndex(array);
         let x = array[idx];
-        if (exclude instanceof WeakSet) {
+        if (Util.isSet(exclude)) {
             if (!exclude.has(x) && !exclude.has(idx))
                 return [x, idx];
         } else {
@@ -247,6 +252,8 @@ Util.randomPair = function(keys, vals) {
     let exclude = {};
 
     let n = Math.min(keys.length, vals.length);
+    if (keys.length > vals.length)
+        throw "overabundance of keys";
     //keys.splice(n);
     //vals.splice(n);
 
@@ -302,6 +309,10 @@ Util.sleep = function(millis) {
         setTimeout(resolve, millis);
     });
 }
+
+Util.a2z = "abcdefghijklmnopqrstuvwxyz";
+Util.nums = "0123456789";
+Util.alphanum = Util.a2z+Util.nums;
 
 Util.stateName = function(vec) {
     if (vec.x == 0 && vec.y < 0)

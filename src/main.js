@@ -164,7 +164,7 @@ function main() {
             module: require("src/Checkers"),
             showTable: true,
             tileSize: 64,
-            tileSpace: 1,
+            tileSpace: 3,
         },
         Memrise: {
             module: require("src/Memrise"),
@@ -192,7 +192,6 @@ function main() {
         console.log("unkown game: ", name);
         return;
     }
-    let {algebra, table} = initAlgebra({resources});
 
     // TODO: tile background image
     // TODO: Use shaders for fade in/out effects
@@ -201,12 +200,30 @@ function main() {
     let tileTexture = GridTiles.randomTexture(resources);
 
     let game = Game.new({
-        algebra,
+        //algebra, !!!
         tileSize: args.tileSize,
         tileSpace: args.tileSpace,
         alpha: 0.8,
         tileMap: _=> tileTexture,
     });
+    game.init();
+
+    let algebra, table;
+    if (game.algebra) {
+        algebra = game.algebra;
+        table = GraphicTable.new(algebra, {
+            tileSize: 45,
+            tileSpace: 0.1,
+            stretch: 0.8,
+            tileMap: function(x, y, id) {
+                return null;
+            },
+        });
+    } else {
+        ({algebra, table} = initAlgebra({resources}));
+        game.algebra = algebra;
+    }
+
     game.start();
 
     if (args.showTable) {
@@ -227,6 +244,17 @@ function main() {
     gameStage.addChild(game.grid);
     if (args.showTable)
         gameStage.addChild(table.grid);
+
+    let gameTitle = new PIXI.Text("", {
+        fontFamiliy: "Monospace",
+        fontSize: 30,
+        fill: 0xeeccaa,
+        align: "center",
+    });
+    gameTitle.text = name;
+    gameTitle.x = game.grid.x + game.grid.width/2 - gameTitle.width;
+    gameTitle.y = game.grid.y - gameTitle.height*2;
+    gameStage.addChild(gameTitle);
 }
 
 function initAlgebra({resources}) {
@@ -239,14 +267,20 @@ function initAlgebra({resources}) {
             ["a", "c", "b"],
             ["b", "b", "a"],
             ["c", "c", "b"],
+            ["d", "d", "b"],
         ],
     });
 
-    let [factory] = Util.randomSelect([CharSprites, MonsterSprites, RpgSprites]);
+    let factories = [CharSprites, MonsterSprites, RpgSprites];
+    let sprites = factories.reduce((ctors, factory) => {
+        return ctors.concat(factory.getConstructors(resources));
+    }, []);
+    sprites.sort(_=> -1 + Math.random*2);
+
     let galge = GraphicAlgebra.new({
         algebra,
         textures: Object.assign(
-            Util.randomPair(algebra.elems, factory.getConstructors(resources)),
+            Util.randomPair(algebra.elems, sprites),
             { equals: resources["equals"].texture,
               [algebra.identity]:  resources["fireball"].texture,
             }
@@ -257,11 +291,9 @@ function initAlgebra({resources}) {
         //)
     });
     let table = GraphicTable.new(galge, {
-        x: 50, y: 10,
         tileSize: 45,
         tileSpace: 0.1,
         stretch: 0.8,
-        //equals: resources["equals"].texture,
         tileMap: function(x, y, id) {
             return null;
         },
@@ -269,32 +301,25 @@ function initAlgebra({resources}) {
     return {algebra: galge, table: table};
 }
 
-function randomTable(elems, n=elems.length) {
+function randomTable(numElems, rows=numElems/2) {
+    let elems = "abcdefghijklmnopqrstuvwxyz";
+    if (elems.length < numElems)
+        throw "cannot create table numElems is too large: " + numElems;
     let table = [];
     let rand = _=> Util.randomSelect(elems)[0];
-    for (let i = 0; i < n; i++)
+    for (let i = 0; i < rows; i++)
         table.push([rand(), rand(), rand()]);
     return table;
 }
 
-function randomAlgebra(elems, spriteCtors) {
+function randomAlgebra(numElems, rows) {
+    let table = randomTable(numElems, rows); 
+    let [row] = Util.randomSelect(table);
     let algebra = Algebra.new({
-        identity: 'e',
-        table: randomTable(elems),
+        identity: Util.randomSelect(row),
+        table, 
     });
-    let galge = GraphicAlgebra.new({
-        algebra,
-        textures: Object.assign(
-            Util.randomPair(algebra.elems, coinSprites.getConstructors(resources)),
-            { equals: resources["equals"].texture,
-              [algebra.identity]:  resources["fireball"].texture,
-            }
-        )
-        //textures: Object.assign(
-        //    Util.randomPair(algebra.elems, tset.textures),
-        //    { equals: resources["equals"].texture }
-        //)
-    });
+    return algebra;
 }
 
 function checkersGame({renderer, gameStage, algebra}) {

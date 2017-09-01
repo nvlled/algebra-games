@@ -44,7 +44,7 @@ let M = {
             running: false,
             timerId: null,
             lastDir: {x: 0, y: 0},
-            actions: Actions.new({throttle: 350}),
+            actions: Actions.new({throttle: 500}),
         };
 
         return self;
@@ -117,7 +117,7 @@ let M = {
         M.init(self);
         M.listenKeys(self);
         self.actions.start();
-        self.randomize(5);
+        self.randomize(3);
     },
 
     stop(self) {
