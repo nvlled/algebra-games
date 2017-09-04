@@ -317,6 +317,7 @@ let M = {
         let {x: sx, y: sy} = M.getSpritePos(self, {x, y, sprite});
         sprite.x = sx;
         sprite.y = sy;
+        sprite[POS] = {x, y};
     },
 
     getSpritePos(self, {x, y, sprite}) {
@@ -347,6 +348,10 @@ let M = {
     tileAt(self, {x, y}) {
         let idx = y*self.cols + x;
         return self.tiles[idx];
+    },
+
+    spritePos(self, sprite) {
+        return sprite[POS];
     },
 
     spriteAt(self, {x, y}) {
@@ -494,8 +499,22 @@ let M = {
         return Promise.all(promises);
     },
 
-    move(self, {src, dest, force=false}) {
-        let sprite = M.spriteAt(self, {x: src.x, y: src.y});
+    fillArray(self, fn) {
+        let {rows, cols} = self;
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                let sprite = fn();
+                M.setSprite(self, {sprite, x: j, y: i});
+            }
+        }
+    },
+
+    move(self, {sprite, src, dest, force=false, apply=false}) {
+        if (sprite && sprite[POS])
+            src = sprite[POS];
+        else
+            sprite = M.spriteAt(self, {x: src.x, y: src.y});
+
         if (!sprite)
             return;
         if (self.gameArray.isOccupied({x: dest.x, y: dest.y}) && !force) {
@@ -506,7 +525,11 @@ let M = {
         let getpos = M.getSpritePos;
         let pos = getpos(self, {sprite, x: src.x, y: src.y});
         let pos_ = getpos(self, {sprite, x: dest.x, y: dest.y});
-        return Waypoint.move(sprite, {pos: pos_, speed: self.speed});
+        return Waypoint.move(sprite, {pos: pos_, speed: self.speed})
+            .then(_=> {
+                if (apply)
+                    M.setSprite(self, {sprite, x: dest.x, y: dest.y});
+            });
     },
 
     placeSprite(self, {sprite, dest}) {

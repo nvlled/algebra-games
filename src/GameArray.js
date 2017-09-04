@@ -89,6 +89,48 @@ let M = {
         return {rows, cols, nil, data};
     },
 
+    async generateMaze(self, {
+        viewerFn= _=>Promise.resolve(),
+    } = {}) {
+        let dirs = [{x: 1, y: 0}, {x: -1, y: 0}, {x: 0, y: 1}, {x: 0, y: -1}];
+        let vec = Vec.new;
+        let indexOf = pos => M.indexOf(self, pos);
+        let visited = {};
+        let isVisited = pos => !! visited[indexOf(pos)];
+        let visit = (pos) => {
+            visited[indexOf(pos)] = true;
+            M.remove(self, pos);
+        }
+        let canVisit = pos => !isVisited(pos) && !M.outbounds(self, pos);
+        let peek = xs => xs[xs.length-1];
+
+        let stack = [vec(M.randomPos(self))];
+
+        while (stack.length > 0) {
+            let pos = peek(stack);
+            if (!isVisited(pos)) {
+                await viewerFn(pos);
+                visit(pos);
+            }
+
+            let deadEnd = true;
+            for (let dir of Util.shuffle(dirs)) {
+                let pos_ = vec(pos).add(vec(dir).mul(2));
+                if (canVisit(pos_)) {
+                    let wallPos = vec(pos).add(dir);
+                    await viewerFn(wallPos);
+                    visit(wallPos);
+                    stack.push(pos_);
+                    deadEnd = false;
+                    break;
+                }
+            }
+
+            if (deadEnd)
+                stack.pop();
+        }
+    },
+
     moveToCollision(self, {
         points=[],        // [{x,y} ...]
         dir={x: 0, y: 0}, // {x, y}
@@ -116,16 +158,6 @@ let M = {
         });
         return values;
     },
-
-    // !!!!!!!!!!!!!
-    // !!!!!!!!!!!!!
-    // !!!!!!!!!!!!!
-    // !!!!!!!!!!!!!
-    // !!!!!!!!!!!!!
-    // TODO: you and your stupid algorithms
-    // just move all the points then check for collision
-    // !!!!!!!!!!!!!
-
 
     move(self, {
         points=[],        // [{x,y} ...]
@@ -315,6 +347,12 @@ let M = {
         let outY = y < 0 || y >= rows;
         let outX = x < 0 || x >= cols;
         return outX || outY; 
+    },
+
+    randomPos(self) {
+        let x = Math.floor(Math.random()*self.cols);
+        let y = Math.floor(Math.random()*self.rows);
+        return {x, y};
     },
 
     toString(self, ch) {

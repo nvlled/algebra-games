@@ -172,7 +172,14 @@ function main() {
             tileSize: 64,
             tileSpace: 10,
         },
+        Codeman: {
+            module: require("src/Codeman"),
+            showTable: false,
+            tileSize: 50,
+            tileSpace: 2,
+        },
     }
+
     {
         let ul = document.querySelector("ul.games");
         ul.innerHTML = "";

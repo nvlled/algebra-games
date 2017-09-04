@@ -296,8 +296,9 @@ Util.shuffle = function(array) {
         let a = Util.randomIndex(array);
         let b = Util.randomIndex(array);
         let [x,y] = [array[a], array[b]];
-        [array[a], array[b]] = [x, y];
+        [array[a], array[b]] = [y, x];
     }
+    return array;
 }
 
 Util.pickIndices = function(array, indices) {

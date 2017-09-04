@@ -23,6 +23,7 @@ let M = {
         let textures = textureSet.indexTextures(indices);
         let sprite = new PIXI.extras.AnimatedSprite(textures);
 
+        sprite.state = defaultState;
         sprite.states = states;
         sprite.textureSet = textureSet;
         sprite.animationSpeed = animationSpeed;
@@ -55,6 +56,9 @@ let M = {
 
     setState(self, name, randomDelay=false) {
         async function potatoChips() {
+            if (self.state == name)
+                return;
+            self.state = name;
             if (randomDelay) {
                 await Util.sleep(Math.random()*1000);
             }
