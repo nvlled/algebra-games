@@ -4,7 +4,9 @@ let EasingFn = require("src/EasingFn");
 let Util = require("src/Util");
 
 let {sqrt, pow} = Math;
-let dist = (a, b) => sqrt(pow(a-b, 2))
+let dist = (a, b) => sqrt(pow(a-b, 2));
+let distVec = (a, b) => Vec.dist(a, b);
+
 let M = {
     create() {
     },
@@ -68,13 +70,12 @@ let M = {
         easeFn=EasingFn.linear,
         fn=O=>O,
     }) {
-        let d = dist(start, end);
-
         if (!start)
             start = Vec.new(sprite[prop]);
+        let d = distVec(start, end);
 
         if (speed == null)
-            speed = Math.abs(Math.log(d)/2)*0.1;
+            speed = Math.abs(Math.log(d)/2)*0.5;
         if (seconds == null)
             seconds = d/speed;
         if (end == null)
