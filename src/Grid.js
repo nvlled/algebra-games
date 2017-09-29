@@ -561,8 +561,24 @@ let M = {
     },
 
     globalToGridPos(self, {x, y}) {
+        let [sx, sy] = [1, 1];
+        let [px, py] = [0, 0];
+        if (self.parent) {
+            let {scale,position} = self.parent;
+            [sx, sy] = [scale.x, scale.y];
+            [px, py] = [position.x, position.y];
+        }
+
         let {x: bx, y: by} = self;
+        bx *= sx;
+        by *= sy;
+        bx += px;
+        by += py;
+
         let {tileWidth, tileHeight, tileSpace} = self;
+        tileWidth *= self.scale.x * sx;
+        tileHeight *= self.scale.x * sx;
+        tileSpace *= self.scale.x * sx;
         x = Math.floor((x - bx + tileWidth*.5)/(tileWidth+tileSpace));
         y = Math.floor((y - by + tileHeight*.5)/(tileHeight+tileSpace));
         if (self.gameArray.outbounds({x, y}))
@@ -574,6 +590,3 @@ let M = {
 M.Proto = Util.prototypify(M);
 
 module.exports = M;
-
-
-
