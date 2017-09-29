@@ -3,8 +3,10 @@ let Util = require("src/Util");
 let M = {
     create({
         throttle=700,
+        bufferSize=20,
     } = {}) {
         return {
+            bufferSize,
             throttle, 
             running: false,
             actions: [],
@@ -18,7 +20,12 @@ let M = {
     },
 
     add(self, action) {
-        if (M.elapsed(self) < self.throttle) {
+        let elapsed = M.elapsed(self);
+        let throttle = self.throttle;
+        if (elapsed < throttle) {
+            return;
+        }
+        if (self.actions.length >= self.bufferSize) {
             return;
         }
         let resolve = null;
