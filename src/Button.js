@@ -18,8 +18,8 @@ let M = {
         padding=20,
         alpha=0.9,
 
-        mousedown=()=>{},
-        mouseup=()=>{},
+        pointerdown=()=>{},
+        pointerup=()=>{},
         
         textStyle={
             normal: 0xffffff,
@@ -51,23 +51,23 @@ let M = {
 
         let hovered = false;
         buttonText.interactive = true;
-        buttonText.on("mouseover", () => {
+        buttonText.on("pointerover", () => {
             hovered = true;
             buttonText.style.fill = textStyle.hover;
             drawRect("hover");
         });
-        buttonText.on("mouseout", () => {
+        buttonText.on("pointerout", () => {
             hovered = false;
             buttonText.style.fill = textStyle.normal;
             drawRect("normal");
         });
-        buttonText.on("mousedown", () => {
-            mousedown();
+        buttonText.on("pointerdown", () => {
+            pointerdown();
             buttonText.style.fill = textStyle.click;
             drawRect("click");
         });
-        buttonText.on("mouseup", () => {
-            mouseup();
+        buttonText.on("pointerup", () => {
+            pointerup();
             console.log("blah");
             if (hovered) {
                 buttonText.style.fill = textStyle.hover;
@@ -86,4 +86,5 @@ let M = {
 
 M.new = Util.constructor(M);
 module.exports = M;
+
 
