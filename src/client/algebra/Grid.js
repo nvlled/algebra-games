@@ -239,6 +239,8 @@ let M = {
         let {rows, cols} = self;
         for (let p of points) {
             let tile = M.tileAt(self, p);
+            if (!tile)
+                continue;
             if (add && tile.tint != 0xffffff)
                 tile.tint |= highlight;
             else

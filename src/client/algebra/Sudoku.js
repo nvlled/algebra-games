@@ -130,6 +130,7 @@ let M = {
             if (sprite)
                 sprite.destroy();
             sprite = new PIXI.Sprite(s.texture);
+            self.createdSprites.push(sprite);
             dragging = true;
             sprite.setParent(self.gameStage.world);
             //s.parent.addChild(sprite);
@@ -188,7 +189,7 @@ let M = {
                     valid = M.checkTiles(self);
                     sprite.destroy();
                     sprite = null;
-                } else {
+                } else if (sprite) {
                     sprite.destroy();
                 }
             } else if (sprite) {
@@ -391,13 +392,7 @@ let M = {
         if (self.initialized)
             return;
         self.initialized = true;
-        let m = Keymap.new({
-            "up": () => {
-                console.log("X");
-                M.gameWin(self);
-            },
-        });
-        m.listen();
+        self.createdSprites = [];
     },
 
     isFixed(self, {x, y}) {
@@ -712,12 +707,16 @@ let M = {
     },
 
     stop(self) {
+        self.gameStage.clearWorld();
         if (self.panel)
             self.panel.destroy(false);
         if (self.grid) {
             self.grid.destroy(false);
         }
-        self.gameStage.clearWorld();
+        for (let s of self.createdSprites) {
+            s.destroy();
+        }
+        self.createdSprites.splice(0);
         M.unlistenKeys(self);
         self.actions.stop();
     },

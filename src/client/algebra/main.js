@@ -249,7 +249,7 @@ function main() {
     //    }
     //}
 
-    let main = require("src/client/algebra/Scratch");
+    let main = require("src/client/algebra/MainMenu");
     gameStage.startModule(main);
 
     //let args = games[name];

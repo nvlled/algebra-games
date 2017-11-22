@@ -12,6 +12,8 @@ let PIXI = require("src/client/pixi");
 let Algebra = require("src/client/algebra/Algebra");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let Layout = require("src/client/algebra/Layout");
+let SetUtil = require("src/client/algebra/SetUtil");
+let PixiUtil = require("src/client/algebra/PixiUtil");
 
 let CoinSprites = require("src/client/algebra/CoinSprites");
 let Backgrounds = require("src/client/algebra/Backgrounds");
@@ -22,15 +24,26 @@ let images = {
     background: Backgrounds.dir+"/dark background.png",
 }
 
-let algebra = Algebra.new({
+//let algebra = Algebra.new({
+//    identity: 'e',
+//    table: [
+//        ["a", "a", "e"],
+//        ["b", "b", "a"],
+//        ["c", "c", "b"],
+//        ["a", "c", "b"],
+//        ["c", "b", "c"],
+//        ["a", "b", "b"],
+//    ],
+//});
+
+algebra = Algebra.new({
     identity: 'e',
     table: [
-        ["a", "a", "e"],
-        ["b", "b", "a"],
-        ["c", "c", "b"],
-        ["a", "c", "b"],
-        ["c", "b", "c"],
-        ["a", "b", "b"],
+        ["a", "a", "a", "a"],
+        ["b", "b", "b", "b"],
+        ["c", "c", "c", "c"],
+        ["d", "d", "d", "d"],
+        ["e", "e", "e", "e"],
     ],
 });
 
@@ -38,9 +51,9 @@ let M = {
     create({
         gameStage,
         resources,
-        rows=5,
-        cols=6,
-        tileSize=80,
+        rows=8,
+        cols=8,
+        tileSize=40,
         tileSpace,
         x, y,
         speed=200,
@@ -50,19 +63,26 @@ let M = {
     } = {}) {
         gameStage.setBackground(images.background);
 
-        let CoinSprites = require("src/client/algebra/CoinSprites").new();
-        let ctors = CoinSprites.getConstructors(resources);
+        //let CoinSprites = require("src/client/algebra/CoinSprites").new();
+        //let ctors = CoinSprites.getConstructors(resources);
 
+        let Rsrc = require("src/client/algebra/Rsrc");
+        let sprites = Rsrc.konett();
+        Util.shuffle(sprites);
+
+        console.log(algebra.elems);
         let galge = GraphicAlgebra.new({
             algebra,
             textures: Object.assign(
-                {
-                    a: ctors[2],
-                    b: ctors[1],
-                    c: ctors[0],
-                    equals: resources["equals"].texture,
-                    [algebra.identity]:  resources["blob"].texture,
-                }
+                {},
+                Util.joinKeyval(algebra.elems, sprites),
+                //{
+                //    a: sprites[2],
+                //    b: sprites[1],
+                //    c: sprites[0],
+                //    equals: resources["equals"].texture,
+                //    [algebra.identity]:  resources["blob"].texture,
+                //}
             )
         });
 
@@ -120,12 +140,6 @@ let M = {
         }
 
         self.grid.onTileDragging = (pos, pos_, dir) => {
-            //dir = Vec.new(pos_).sub(pos).norm();
-            //if (dir.x != 0 && dir.y != 0 || dir.len() == 0) {
-            //    //prevent horizontal movement
-            //    return;
-            //}
-
             if (!dir)
                 return;
             if (Vec.isZero(dir))
@@ -134,30 +148,12 @@ let M = {
             if (destTile)
                 destTile.tint = 0xffffff;
 
-            //let p = Vec.new(pos).add(dir);
-            //destTile = self.grid.tileAt(p);
             destTile = self.grid.tileAt(pos_);
             if (destTile)
                 destTile.tint = 0xff0000;
-
-
-            //let {rows, cols} = self;
-            //if (x >= cols)
-            //    x = 0;
-            //else if (x < 0)
-            //    x = cols-1;
-            //if (y >= rows)
-            //    y = 0;
-            //else if (y< 0)
-            //    y = rows-1;
         },
-        //self.grid.onTileOut = (pos, __) => {
-        //    if (srcTile)
-        //        srcTile.tint = 0xffffff;
-        //    if (destTile)
-        //        destTile.tint = 0xffffff;
-        //},
-        self.grid.onTileDrag = (pos, pos_, dir, wrapped) => {
+
+        self.grid.onTileDrag = async (pos, pos_, dir, wrapped) => {
             if (srcTile)
                 srcTile.tint = 0xffffff;
             if (destTile)
@@ -166,11 +162,8 @@ let M = {
             if (!dir)
                 return;
 
-            //pos_ = Vec.new(pos).add(dir);
-
             if (!Vec.isOrthogonal(dir))
                 return;
-            console.log(wrapped, dir.len())
             if (!wrapped && Vec.dist(pos, pos_) != 1)
                 return;
 
@@ -184,34 +177,105 @@ let M = {
             if (sprite.setState)
                 sprite.setState(Util.stateName(dir));
 
-            grid.move({src: pos, dest: pos_, force: true})
-                .then(_=> {
-                    let {algebra} = self;
-                    let sprite__ = algebra.applySprites(sprite, sprite_);
-                    if (sprite__) {
-                        grid.removeSprite(pos);
-                        grid.removeSprite(pos_);
-                        if (algebra.getElem(sprite__) == algebra.algebra.identity) {
-                            for (let s of [sprite, sprite_]) {
-                                Anima.boom(s);
-                            }
-                        } else {
-                            sprite.destroy();
-                            sprite_.destroy();
-                            grid.setSprite({sprite: sprite__, x: pos_.x, y: pos_.y});
-                        }
-                    } else {
-                        grid.move({src: pos, dest: pos, force: true})
-                    }
-                });
-        }
+            grid.move({src: pos_, dest: pos, force: true, apply: true});
+            await grid.move({src: pos, dest: pos_, force: true, apply: true});
 
-        //self.grid.hightlightTiles([
-        //        {x: 0, y:0},
-        //        {x: 1, y:0},
-        //        {x: 0, y:1},
-        //], 0xff0000);
-        //self.grid.hightlightRange({x: 0, y: 2}, {x: 3, y: 2});
+            let {algebra} = self;
+            let size = algebra.getMaxArgLen();
+            let exclude = new Set();
+
+            let table = [];
+
+            for (let p of [pos, pos_]) {
+                if (!p)
+                    continue;
+                if (exclude.has(p))
+                    continue;
+                let params = await M.findCandidateParameters(self, {pos: p, size, exclude});
+                if (params.length > 0) {
+                    SetUtil.addAll(exclude, params);
+                    table = table.concat(params);
+                }
+            }
+
+            let promises = [];
+            if (table.length == 0) {
+                grid.move({src: pos_, dest: pos, force: true, apply: true});
+                await grid.move({src: pos, dest: pos_, force: true, apply: true});
+            } else {
+                for (let row of table) {
+                    promises = promises.concat(row.map(s => {
+                        grid.removeSprite(s);
+                        return Anima.squeezeIn(s)
+                    }));
+                }
+                await Promise.all(promises);
+                await grid.dropVertical();
+                M.fillEmptyFiles(self);
+            }
+
+        }
+    },
+    
+    fillEmptyFiles(self) {
+        let {grid, algebra} = self;
+        for (let y = 0; y < grid.rows; y++) {
+            for (let x = 0; x < grid.cols; x++) {
+                if (!grid.isOccupied({x, y})) {
+                    let s = algebra.randomSprite();
+                    grid.setSprite({sprite: s, x, y});
+                    Anima.fade(s, {start: 0, end: 1});
+                }
+            }
+        }
+    },
+
+    async findCandidateParameters(self, {pos, size, matchSize=true, exclude=[]}) {
+        let excludeSet = exclude instanceof Set ? exclude : new Set(exclude);
+        let shouldInclude = x => !excludeSet.has(x);
+
+        let {grid, algebra} = self;
+
+        let result = [];
+        for (let n = 0; n < size; n++) {
+            let sprites = [];
+            for (let x = pos.x-n; x < pos.x+size-n; x++) {
+                let sprite = grid.spriteAt({x, y: pos.y});
+                if (sprite && shouldInclude(sprite))
+                    sprites.push(sprite);
+            }
+            if (!matchSize || sprites.length == size) {
+                //PixiUtil.tintAll(sprites, 0xff0000);
+                //await Util.sleep(100);
+                //PixiUtil.tintAll(sprites);
+
+                if (algebra.applySprites(...sprites)) {
+                    result.push(sprites);
+                    return result;
+                    //return sprites;
+                }
+            }
+        }
+        for (let n = 0; n < size; n++) {
+            let sprites = [];
+            for (let y = pos.y-n; y < pos.y+size-n; y++) {
+                let sprite = grid.spriteAt({y, x: pos.x});
+                if (sprite && shouldInclude(sprite))
+                    sprites.push(sprite);
+            }
+            if (!matchSize || sprites.length == size) {
+                //PixiUtil.tintAll(sprites, 0xff0000);
+                //await Util.sleep(500);
+                //PixiUtil.tintAll(sprites);
+
+                if (algebra.applySprites(...sprites)) {
+                    result.push(sprites);
+                    break;
+                    //return sprites;
+                }
+            }
+        }
+        return result;
     },
 
     checkTiles(self, pos) {

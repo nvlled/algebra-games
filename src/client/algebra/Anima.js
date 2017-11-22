@@ -153,7 +153,7 @@ let M = {
         return M.vecLerp(sprite, "scale", args);
     },
 
-    squeezeOut(sprite, args) {
+    squeezeOut(sprite, args = {}) {
         args.end = Vec.new({x: sprite.scale.y, y: sprite.scale.y});
         return M.vecLerp(sprite, "scale", args);
     },
