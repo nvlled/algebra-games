@@ -1,0 +1,86 @@
+
+        let subMenu, mainMenu, gameMenu = null;
+
+        let selectGame = function(size) {
+            M.newGame(self, size);
+            Layout.center({}, self.grid);
+            Anima.moveBy(mainMenu, { end: {x: 900}, seconds: 0.5});
+            Anima.move(subMenu, { end: {y: -subMenu.height}, seconds: 0.5});
+            Anima.fade(subMenu, {end: 0, seconds: 0.5});
+            gameMenu.visible = true;
+            Anima.fade(gameMenu, {end: 1, seconds: 0.5});
+            self.grid.visible = true;
+            self.grid.scale.set(1);
+            self.grid.rotation = 0;
+            Layout.belowOf({margin: -gameMenu.height-20, center: true}, self.gameStage, gameMenu);
+        }
+
+        subMenu = Layout.col({}, ...[
+            Button.new({
+                text: "4x4",
+                pointerup: async _=> {
+                    selectGame(4);
+                },
+            }),
+            Button.new({
+                text: "6x6",
+                pointerup: async _=> {
+                    selectGame(6);
+                },
+            }),
+        ]);
+
+        mainMenu = Layout.col({}, ...[
+            Button.new({
+                text: "new game",
+                bgStyle: {normal: 0x0000aa,},
+                pointerup: async _=> {
+                    //Anima.vibrate(self.gameStage.world, {
+                    //    end: 0.1,
+                    //    seconds: 0.1,
+                    //});
+                    //Anima.shake(self.gameStage.world, {
+                    //    end: 1,
+                    //    seconds: 1,
+                    //});
+                    PixiUtil.center(mainMenu);
+                    Anima.move(mainMenu, {
+                        end: {x: mainMenu.x-mainMenu.width},
+                    }).then(_=> {
+                        PixiUtil.center(subMenu);
+                        subMenu.visible = true;
+                        Anima.fade(subMenu, {end: 1, seconds: 0.5});
+                    });
+                },
+            }),
+            //Button.new({
+            //    text: "quit game",
+            //    pointerup: _=> {
+            //    },
+            //})
+        ]);
+
+        gameMenu = Layout.row({}, ...[
+            Button.new({
+                text: "clear",
+                pointerup: _=> {
+                    M.clearSprites(self);
+                },
+            }),
+            Button.new({
+                text: "quit",
+                pointerup: _=> {
+                    mainMenu.visible = true;
+                    Promise.all([
+                        Anima.squeezeIn(self.grid, {end: 0, seconds: 1}),
+                        Anima.rotate(self.grid, {end: 5, seconds: 1}),
+                        Anima.moveBy(self.grid, {end: {x: 50}, seconds: 1}),
+                        Anima.fade(gameMenu, {end: 0, seconds: 1}),
+                    ]).then(_=> {
+                        //mainMenu.x = 0;
+                        //mainMenu.y = 0;
+                        Layout.centerOf({}, self.gameStage, mainMenu);
+                    });
+                },
+            }),
+        ]);

@@ -1,38 +1,16 @@
-var HtmlWebpackPlugin = require('html-webpack-plugin');
-var CopyWebpackPlugin = require('copy-webpack-plugin');
-
-var path = require('path')
-var webpack = require('webpack')
+const path = require('path');
 
 module.exports = {
-    node: {fs: "empty"},
-    entry: ["babel-polyfill", "./src/main.js"],
+    entry: {
+        index:     './dist/client/page-scripts/index.js',
+        //mapeditor: './dist/client/page-scripts/mapeditor.js',
+    },
+    devtool: "eval",
     output: {
-        path: path.resolve(__dirname, "dist"),
-        filename: "bundle.js"
-    },
-    //devtool: "eval",
-    resolve: {
-        extensions: [".js"],
-        //alias: {
-        //    src: path.resolve(__dirname, "src/"),
-        //    images: path.resolve(__dirname, "images/"),
-        //},
-    },
-    plugins: [
-        //new CleanWebpackPlugin(['dist']),
-        new HtmlWebpackPlugin({
-            template: './index.html'
-        }),
-        new CopyWebpackPlugin([{from: "./images", to: "images/"}]),
-    ],
-    module: {
-        rules: [
-        ],
-
-        loaders: [
-        ],
+        filename: '[name].js',
+        path: path.resolve(__dirname, 'static/scripts')
     },
 };
+
 
 

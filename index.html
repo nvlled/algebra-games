@@ -1,6 +1,7 @@
+<!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" href="https://cdn.rawgit.com/Chalarangelo/mini.css/v2.3.4/dist/mini-default.min.css">
+    <meta charset="UTF-8">
 <style>
 body {
     color: #fff;
@@ -13,6 +14,11 @@ a, a:visited {
 canvas {
     display: block;
     margin: 0 auto;
+    width: 90%;
+}
+li {
+    margin-left: 10px;
+    display: inline-block;
 }
 
 .wrapper {
@@ -20,46 +26,21 @@ canvas {
     width: 1024;
     margin: 0 auto;
 }
+body { text-align: center }
+
 hr { width : 350px; margin: 0 auto; }
 </style>
 </head>
 
 <body>
 <div class="wrapper">
-    <h1>Algebra(ish) Games</h1>
     <ul class="games">
     </ul>
 
     <div class="game">
     </div>
-    <h4 class="game-title">Information/Description</h4>
-    <p class="game-information"></p>
-    <h2>What's this?</h2>
-    <p>
-        These are games are designed to (hopefully) help students
-        learn and understand basic concepts in (abstract) algebra.
-        The games utilizes the general definition algebra, which 
-        is a set with defined operations that satisfies some constraints.
-    </p>
-    <hr>
-    <h2>Status</h2>
-    <p>
-        The games themselves are barely done, but the architecture
-        and framework itself is more or less stable so it shouldn't
-        be too hard to add new grid-based games.
-    </p>
-
-    <footer>
-        <p>
-        Game assets are taken from <a href="https://opengameart.org/">opengameart.org</a>
-        and from other sources I lazily googled out of whim.
-        <p>
-        Tech used: [<a href="http://www.pixijs.com/">pixijs</a>, nodejs, webpack]
-        </p>
-    </footer>
+    <h3><a href=".">(reset)</a></h3>
+    <script src="static/scripts/index.js"></script>
 </div>
 </body>
 </html>
-
-
-

@@ -1,0 +1,19 @@
+
+<form method="POST">
+    <% if (msg) { %>
+        <%=msg%>
+    <% } %>
+    <p>
+        username:
+        <input name="username" value="<%=data.username%>">
+    </p>
+    <p>
+        password:
+        <input name="password" type="password" value="<%=data.password%>">
+    </p>
+    <p>
+        re-enter password:
+        <input name="password2" type="password" value="<%=data.password2%>">
+    </p>
+    <button>register</button>
+</form>

@@ -1,0 +1,3 @@
+set wildignore+=*/dist/*
+set wildignore+=*/node_modules/*
+set wildignore+=*/public/scripts/*

@@ -1,0 +1,57 @@
+<%
+let msg = "";
+
+(async function() {
+    let {User} = models;
+    let {username, password, password2} = data;
+
+    //validate(_=> password != password2, "password does not match");
+
+    if (password == "") {
+        msg = "password is required";
+        return;
+    }
+    if (password != password2) {
+        msg = "password does not match";
+        return;
+    }
+
+    msg = "asdf";
+    let existingUser = await User.findById(username);
+    msg = existingUser.username;
+
+    if (true) {
+        msg = "username is used: " + username; 
+        return;
+    }
+
+    User.create({
+        username,
+        password,
+    });
+
+    msg = "registration successful";
+})();
+%>
+
+<form>
+    <% if (msg) { %>
+        <%=msg%>
+    <% } %>
+    <p>
+        username:
+        <input name="username" value="<%=data.username%>">
+    </p>
+    <p>
+        password:
+        <input name="password" type="password" value="<%=data.password%>">
+    </p>
+    <p>
+        re-enter password:
+        <input name="password2" type="password" value="<%=data.password2%>">
+    </p>
+    <button>register</button>
+</form>
+
+
+

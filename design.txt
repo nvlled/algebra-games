@@ -1,0 +1,115 @@
+TODO: 
+
+* Set background and tile images for each game, no randomization
+* Simple menu for each game
+* Drag elements on sudoku to tiles
+    
+
+
+
+
+TODO: allow multiple operators on each algebra
+operators can be represented as the direction of the drag for instance
+
+games:
+(just make lots of dumb games,
+think about novelty later on...)
+
+drop
+pair
+2048
+puzzle bobble
+checker/chess
+jigsaw puzzle
+matrix
+karnaugh map
+tictactoe
+memory game
+VN
+sliding rectangles thingy
+bomberman
+code commander
+
+interpolation thing
+
+// applicable to pos, size, rotation, alpha, color!!111!
+// hooray for simple supa useful functions!1111111
+function interpolate(x, fn) {
+    return function(t) {
+        fn(t/x);
+    }
+}
+
+x   ->  y
+50  ->  100
+f(50) = 0
+f(75) =  .5
+f(100) = 1
+f(125) = 1.25
+
+-50 -> 50
+dist(-50, 50) = 100
+dist(0, 50)   = 50
+dist(-25, 50)   = 75
+dist(25, 50)   = 25
+(100 - 25)/100
+
+f(0) = 0.5
+f(-25) = 0.25
+
+51 = 51-50/100
+
+0.1 -> -0.5
+
+
+f = interpolate(0.1, cubic)
+f(0.5);
+
+let v = Mod.build(v, Vec);
+v.sub(w);
+v.add(u);
+
+
+-------------------------
+
+
+username: _________
+password: _________
+
+
+
+------------------------
+
+Edit Drop
+----------------------------------------
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+|                                      |
+----------------------------------------
+tile space: ________
+tile width:  50
+tile height: 50
+
+
+-------------------------
+
+user info:
+last login: 
+hours played:
+    this day: 
+    this week: 
+
+
+-------------------------
+
+
+
+
+--------------------------------------------------------
+
+
+
+

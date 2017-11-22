@@ -1,0 +1,57 @@
+Drop:
+The game mechanics is similar to tetris where the tetrominoes descend per unit of time and can be dropped, rotated or moved sideways. The goal is simply to prevent blocks from reaching the top.
+
+This variation differs from the classical tetris in two aspects:
+
+(1) Line clearing
+This game does not clear completed blocks, but instead clears blocks based on the table that represents an algebraic operation.
+
+(2) Shape disintegration
+Unlike tetris where the tetrominoes maintain their shape after landing, this game disintegrates the tetrominoes to fill the empty spaces beneath it. 
+
+The game can be controlled with keyboard. 
+Left and right arrows keys moves the shape horizontally. Up
+Up arrow key rotates the tetromino, and the down key releases and drops the tetromino. Onscreen controls may also be available to support devices with no keys.
+
+---
+
+Ten24:
+This game is a variation of the game 2048, a game which the player moves the blocks in four directions to combine same numbers, where each pair of number is replaced with one number with twice the value. The goal is to prevent avoiding filling up the grid trying to reach number 2048 by iteratively combining powers-of-two numbers.
+
+This variantion generalizes 2048, where instead of just numbers combined with addition, the game allows arbitrary elements to be combined as defined by an accompanying table, or a table that defines a simple algebra.
+
+The controls are similiar to 2048--arrow keys are used to move in the direction corresponding to the arrow key pressed. Onscreen controls may also be available.
+
+---
+
+Pairswap (name subject to change):
+The game mechanics is somewhat similar to bejeweled game, where the player swaps two gems to clear three same-colored gems. But instead of the similarity of the color as the basis for clearing, the game uses a table that defines the rules for clearing or substituting a value. The game mechanics is still experimental and so the goal is still quite not clear.
+
+The controls used for the game are pointer devices, such as a mouse or a touchscreen.
+
+----
+
+Checkers
+
+The game is what it sounds like, a checkers but with a slight variation. In checkers, the player wins by having an adjacent piece jump over the opposing piece to clear it. In this game, the rules for clearing the pieces are defined by a table, where a piece can only jump over an opposing piece if the two pieces has a matching entry in the table.
+
+The controls are pointer devices such as a mouse o touchpad, where the player points at the piece and drags it to the destined tile.
+
+----
+
+Sadaku
+
+This game is a variation of sudoku where the numbers are replaced with abitrary elements or characters, but uses the same rules as the original version. The player uses a mouse or touchpad to drag an element (that represents a number) into the grid. The goal is to complete the whole grid without having an element be repeated in the same row, column, or square.
+
+----
+
+Memrise
+
+A memory game where instead instead of remembering where the matching items are hidden, the player must remember and match the pieces that has a entry defined in the table. 
+
+The controls are pointer devices such as a mouse or touchpad, where the player points at the first tile to reveal it, then point on the second tile to reveal it as well. If the two revealed items has a matching entry in the table, then they are cleared, and are no longer hidden.
+
+
+
+
+
