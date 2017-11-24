@@ -4,6 +4,7 @@ let Waypoint = require("src/client/algebra/Waypoint");
 let Vec = require("src/client/algebra/Vec"); 
 let Block = require("src/client/algebra/Block"); 
 let Phys = require("src/client/algebra/Phys"); 
+let Anima = require("src/client/algebra/Anima"); 
 let PixiUtil = require("src/client/algebra/PixiUtil");
 let PIXI = require("src/client/pixi");
 let {markGetterSetter} = Util;
@@ -15,6 +16,7 @@ function indexToXY({i, cols}) {
     }
 }
 
+let MASK = Symbol("Mask");
 let POS = Symbol("Tile Pos");
 let BORDER = Symbol("Border");
 let ISTILE = Symbol("Tile Marker");
@@ -88,24 +90,24 @@ let M = {
                 sprite.alpha = alpha;
                 sprite.anchor.set(0.5);
 
-                if (tileRadius != null) {
-                    // TODO: fix
-                    let w = sprite.width;
-                    let scale = sprite.scale.x;
-                    let size = (tileWidth)*scale;
-                    let args = Object.assign(
-                        {
-                            radius: 1,
-                            x: 0,
-                            y: 0,
-                            width: tileWidth,
-                            height: tileHeight,
-                        },
-                    );
-                    let mask = PixiUtil.roundedRect(args);
-                    mask.width = w;
-                    mask.height = w;
-                }
+                //if (tileRadius != null) {
+                //    // TODO: fix
+                //    let w = sprite.width;
+                //    let scale = sprite.scale.x;
+                //    let size = (tileWidth)*scale;
+                //    let args = Object.assign(
+                //        {
+                //            radius: 1,
+                //            x: 0,
+                //            y: 0,
+                //            width: tileWidth,
+                //            height: tileHeight,
+                //        },
+                //    );
+                //    let mask = PixiUtil.roundedRect(args);
+                //    mask.width = w;
+                //    mask.height = w;
+                //}
 
                 tiles.push(sprite);
             }
@@ -343,7 +345,6 @@ let M = {
         self.gameArray.data.splice(0);
     },
 
-    //removeSprite(self, {x, y}, destroy=false) {
     removeSprite(self, sprite, destroy=false) {
         let pos;
         if (sprite[POS])
@@ -403,12 +404,8 @@ let M = {
 
         let {tileHeight, tileWidth, tileSpace} = self;
         let pos = M.spritePos(self, sprite);
-        //let tx = (pos.x * (tileHeight+tileSpace)) + tileWidth*0.5;
-        //let ty = (pos.y * (tileHeight+tileSpace)) + tileHeight*0.5;
 
         return {
-            //x: baseX + tx,
-            //y: baseY + ty,
             x: baseX + tile.x,
             y: baseY + tile.y,
         }
@@ -599,20 +596,20 @@ let M = {
         );
     },
 
-    placeSpritesToGrid(self) {
-        let i = -1;
-        let promises = [];
-        let {gameArray} = self;
-        for (let sprite of gameArray.data) {
-            i++;
-            if (!sprite)
-                continue;
-            let {x, y} = indexToXY({i, cols: self.cols});
-            ({x, y} = M.getSpritePos(self, {x, y, sprite}));
-            promises.push(Waypoint.move(sprite, { pos: {x, y}}));
-        }
-        return Promise.all(promises);
-    },
+    //placeSpritesToGrid(self) {
+    //    let i = -1;
+    //    let promises = [];
+    //    let {gameArray} = self;
+    //    for (let sprite of gameArray.data) {
+    //        i++;
+    //        if (!sprite)
+    //            continue;
+    //        let {x, y} = indexToXY({i, cols: self.cols});
+    //        ({x, y} = M.getSpritePos(self, {x, y, sprite}));
+    //        promises.push(Waypoint.move(sprite, { pos: {x, y}}));
+    //    }
+    //    return Promise.all(promises);
+    //},
 
     fillArray(self, fn) {
         let {rows, cols} = self;
@@ -624,7 +621,7 @@ let M = {
         }
     },
 
-    move(self, {sprite, src, dest, force=false, apply=false, speed}) {
+    async move(self, {sprite, src, dest, force=false, apply=false, speed, jump=false}) {
         if (sprite && sprite[POS])
             src = sprite[POS];
         else
@@ -640,20 +637,25 @@ let M = {
         let getpos = M.getSpritePos;
         let pos = getpos(self, {sprite, x: src.x, y: src.y});
         let pos_ = getpos(self, {sprite, x: dest.x, y: dest.y});
-        return Waypoint.move(sprite, {pos: pos_, speed: speed || self.speed})
-            .then(_=> {
-                if (apply)
-                    M.setSprite(self, {sprite, x: dest.x, y: dest.y});
-            });
+
+        speed = speed || self.speed;
+        if (jump)
+             await Anima.teleport(sprite, {end: pos_, seconds: 0.3});
+        else
+            await Anima.move(sprite, {end: pos_, speed: speed})
+
+        if (apply) // whew
+            M.setSprite(self, {sprite, x: dest.x, y: dest.y});
+        return Promise.resolve();
     },
 
-    placeSprite(self, {sprite, dest}) {
-        let getpos = M.getSpritePos;
-        let pos = getpos(self, {sprite, x: dest.x, y: dest.y});
-        let i = M.indexOfSprite(self, sprite);
-        Waypoint.move(sprite, {pos})
-            .then(_=> M.setSprite(self, {sprite, x: dest.x, y: dest.y}));
-    },
+    //placeSprite(self, {sprite, dest}) {
+    //    let getpos = M.getSpritePos;
+    //    let pos = getpos(self, {sprite, x: dest.x, y: dest.y});
+    //    let i = M.indexOfSprite(self, sprite);
+    //    Waypoint.move(sprite, {pos})
+    //        .then(_=> M.setSprite(self, {sprite, x: dest.x, y: dest.y}));
+    //},
 
     indexOfSprite(self, sprite) {
         let sprites = self.gameArray.data;
@@ -748,6 +750,21 @@ let M = {
         return points;
     },
 
+    wrapPos(self, {x, y}) {
+        let {rows, cols} = self;
+        if (x < 0) {
+            x = cols + x%cols;
+        } else if (x >= cols) {
+            x = x%cols;
+        }
+        if (y < 0) {
+            y = rows + y%rows;
+        } else if (y >= rows) {
+            y = y%rows;
+        }
+        return {x, y};
+    },
+
     indexOf(self, {x, y}) {
         return self.gameArray.indexOf({x, y});
     },
@@ -812,7 +829,3 @@ let M = {
 
 M.Proto = Util.prototypify(M);
 module.exports = M;
-
-
-
-

@@ -108,6 +108,14 @@ let M = {
         ));
     },
 
+    async teleport(sprite, args) {
+        let {speed, seconds} = args;
+        await M.fade(sprite, {start: 1, end: 0, seconds, speed});
+        sprite.x = args.end.x;
+        sprite.y = args.end.y;
+        await M.fade(sprite, {start: 0, end: 1, seconds, speed});
+    },
+
     move(sprite, args) {
         M._setEndStart(sprite, args);
         return M.vecLerp(sprite, "position", args);
@@ -202,7 +210,7 @@ let M = {
 
     vecLerp(sprite, prop, {
         start, end,
-        seconds=0.5,
+        seconds=0.35,
         speed,
         easeFn=EasingFn.linear,
         fn=O=>O,
