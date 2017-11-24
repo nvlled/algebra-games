@@ -158,9 +158,11 @@ let M = {
             running: false,
             timerId: null,
             level: 0,
-            dropSpeed: 100,
+            dropSpeed: 300,
             score: 0,
             clearCount: 0,
+            rotateTime: 0.4,
+            moveTime: 0.4,
 
             gameStage,
             actions: Actions.new({throttle: 30, bufferSize: 1}),
@@ -554,7 +556,7 @@ let M = {
     },
 
     async moveBlock(self, block, dir) {
-        return self.grid.moveBlock({block, dir});
+        return self.grid.moveBlock({block, dir, seconds: self.moveTime});
     },
 
     moveLeft(self) {
@@ -657,7 +659,7 @@ let M = {
     },
 
     rotateBlock(self, block) {
-        return self.grid.rotateBlock({block});
+        return self.grid.rotateBlock({block, seconds: self.rotateTime});
     },
 
     listenKeys(self) {

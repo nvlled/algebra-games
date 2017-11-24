@@ -60,6 +60,7 @@ let M = {
                 tileSize, tileSpace,
                 tileMap, speed,
                 stretch,
+                easeFn: EasingFn.outElastic,
             },
 
             gameStage,

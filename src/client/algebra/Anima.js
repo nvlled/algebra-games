@@ -210,7 +210,7 @@ let M = {
 
     vecLerp(sprite, prop, {
         start, end,
-        seconds=0.35,
+        seconds,
         speed,
         easeFn=EasingFn.linear,
         fn=O=>O,
@@ -230,7 +230,7 @@ let M = {
         let d = distVec(start, end);
 
         if (speed == null)
-            speed = Math.abs(Math.log(d)/2)*0.5;
+            speed = Math.abs(Math.log(d)/2)*200;
         if (seconds == null)
             seconds = d/speed;
         if (end == null)

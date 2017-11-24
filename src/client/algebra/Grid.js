@@ -49,7 +49,8 @@ let M = {
         alpha=0.7,
         interactive=false,
         highlight=0xdd0000,
-        
+        easeFn,
+
         onTileDown=({x, y})=>console.log("tile down: ", x, y),
         onTileDrag=(pos, pos_, dir)=> {
             console.log("drag: ", pos, "->", pos_, ", dir: ", dir.x, dir.y);
@@ -130,6 +131,7 @@ let M = {
             wrapDrag,
             operations: [],
             actions: [],
+            easeFn,
         });
 
         return container;
@@ -473,7 +475,8 @@ let M = {
         }, tint));
     },
 
-    performBlockAction(self,  {block, speed}, action) {
+    performBlockAction(self,  {block, speed, seconds}, action) {
+        speed = speed || self.speed;
         let {gameArray} = self;
         let paths = action();
 
@@ -484,7 +487,7 @@ let M = {
                 if (path == null)
                     continue;
                 let [p, p_] = path;
-                promises.push(M.move(self, {src: p, dest: p_, force: true, speed}));
+                promises.push(M.move(self, {src: p, dest: p_, force: true, speed, seconds}));
                 points_.push(p_);
             }
             return Promise.all(promises)
@@ -517,15 +520,17 @@ let M = {
         dir={x: 0, y: 0},
         block,
         speed,
+        seconds,
     } = {}) {
         // update block points
-        return M.performBlockAction(self, 
+        return M.performBlockAction(self,
             {
                 block,
                 speed,
+                seconds,
             },
             _=> self.gameArray.move({
-                dir, 
+                dir,
                 rigid: block.rigid,
                 points: block.points,
             })
@@ -536,11 +541,12 @@ let M = {
         dir={x: 0, y: 0},
         block,
         speed,
+        seconds,
     }) {
-        return M.performBlockAction(self, 
-            {speed, block,},
+        return M.performBlockAction(self,
+            {speed, block,seconds},
             _=> self.gameArray.moveToCollision({
-                dir, 
+                dir,
                 rigid: block.rigid,
                 points: block.points,
             })
@@ -551,13 +557,14 @@ let M = {
         dir=1,
         block,
         speed,
+        seconds,
     } = {}) {
         if (block.noRotate)
             return Promise.resolve();
-        return M.performBlockAction(self, 
-            {speed, block,},
+        return M.performBlockAction(self,
+            {speed, block,seconds},
             _=> self.gameArray.rotate({
-                dir, 
+                dir,
                 square: block.square,
                 points: block.points,
                 pivot: block.pivot,
@@ -568,20 +575,22 @@ let M = {
     dropVertical(self, {
         dir=1,
         speed,
+        seconds,
     } = {}) {
-        return M.performBlockAction(self, 
-            {speed},
+        return M.performBlockAction(self,
+            {speed,seconds},
             _ => self.gameArray.dropVertical({ dir }));
     },
 
     dropHorizontal(self, {
         dir=1,
         speed,
+        seconds,
     } = {}) {
-        return M.performBlockAction(self, 
-            {speed},
+        return M.performBlockAction(self,
+            {speed,seconds},
             _ => self.gameArray.dropHorizontal({
-                dir, 
+                dir,
             })
         );
     },
@@ -589,9 +598,10 @@ let M = {
     drop(self, {
         dir,
         speed,
+        seconds,
     } = {}) {
-        return M.performBlockAction(self, 
-            {speed},
+        return M.performBlockAction(self,
+            {speed,seconds},
             _ => self.gameArray.drop({ dir })
         );
     },
@@ -621,7 +631,14 @@ let M = {
         }
     },
 
-    async move(self, {sprite, src, dest, force=false, apply=false, speed, jump=false}) {
+    async move(self, {sprite, src, dest,
+        force=false,
+        apply=false,
+        speed,
+        seconds,
+        jump=false,
+        easeFn=self.easeFn,
+    }) {
         if (sprite && sprite[POS])
             src = sprite[POS];
         else
@@ -640,9 +657,9 @@ let M = {
 
         speed = speed || self.speed;
         if (jump)
-             await Anima.teleport(sprite, {end: pos_, seconds: 0.3});
+             await Anima.teleport(sprite, {end: pos_, seconds: seconds || 0.3});
         else
-            await Anima.move(sprite, {end: pos_, speed: speed})
+            await Anima.move(sprite, {end: pos_, speed: speed, seconds, easeFn})
 
         if (apply) // whew
             M.setSprite(self, {sprite, x: dest.x, y: dest.y});
