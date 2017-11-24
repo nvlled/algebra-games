@@ -339,7 +339,7 @@ let M = {
 
     createGrid(self, size) {
         if (self.grid) {
-            self.grid.destroy();
+            self.grid.destroy({children: true});
         }
 
         let {gridArgs} = self;
@@ -709,9 +709,9 @@ let M = {
     stop(self) {
         self.gameStage.clearWorld();
         if (self.panel)
-            self.panel.destroy(false);
+            self.panel.destroy({children: true});
         if (self.grid) {
-            self.grid.destroy(false);
+            self.grid.destroy({children: true});
         }
         for (let s of self.createdSprites) {
             s.destroy();

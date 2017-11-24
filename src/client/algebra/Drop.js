@@ -368,13 +368,13 @@ let M = {
 
     stop(self) {
         if (self.table)
-            self.table.grid.destroy();
+            self.table.grid.destroy({children: true});
         self.actions.stop();
         M.unlistenKeys(self);
         self.running = false;
         clearTimeout(self.timerId);
         if (self.grid)
-            self.grid.destroy(false);
+            self.grid.destroy({children: true});
     },
 
     async start(self) {

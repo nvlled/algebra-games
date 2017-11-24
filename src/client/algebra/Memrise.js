@@ -339,9 +339,9 @@ let M = {
 
     stop(self) {
         if (self.grid)
-            self.grid.destroy(false);
+            self.grid.destroy({children: true});
         if (self.table)
-            self.table.grid.destroy(false);
+            self.table.grid.destroy({children: true});
         M.unlistenKeys(self);
         self.actions.stop();
     },
