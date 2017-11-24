@@ -20,14 +20,19 @@ let M = {
 
         let textures = [];
 
+        let width  = cols != null ? tileWidth*cols : image.width;
+        let height = rows != null ? tileHeight*rows : image.height;
+
         let x = 0;
         let y = 0;
-        while (y < image.height) {
+        while (y < height) {
             let rect = new PIXI.Rectangle(x, y, tileWidth, tileHeight);
-            let texture = new PIXI.Texture(image, rect)
+            let texture;
+            texture = new PIXI.Texture(image, rect)
+
             textures.push(texture);
             x += tileWidth;
-            if (x >= image.width) {
+            if (x >= width) {
                 x = 0;
                 y += tileHeight;
                 if (countRows)

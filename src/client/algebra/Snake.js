@@ -56,19 +56,14 @@ let M = {
         let tileMap = (x, y) => {
             return tile1;
         }
-        let grid = Grid.new({
-            x, y, rows, cols, tileSize, tileSpace, tileMap,
-            speed, stretch, interactive: true, alpha,
-        });
-        grid.setInteractive();
-        gameStage.add(grid);
-        Layout.center({}, grid);
-
         let self = {
+            gridArgs: {
+                x, y, rows, cols, tileSize, tileSpace, tileMap,
+                speed, stretch, interactive: true, alpha,
+            },
             gameStage,
             resources,
             actions: Actions.new({throttle: 10, bufferSize: 1}),
-            grid,
             keys: {
                 left: Keyboard(37),
                 up: Keyboard(38),
@@ -192,14 +187,13 @@ let M = {
     },
 
     newGame(self) {
-    },
-
-    start(self) {
         self.actions.start();
+        M.createGrid(self);
         M.createAlgebra(self);
         M.listenKeys(self);
         M.randomize(self);
         M.randomInsert(self, 10);
+        M.createPlayMenu(self);
 
         let ticker = PIXI.ticker.shared;
         let {left, right, up, down} = self.keys;
@@ -218,9 +212,81 @@ let M = {
         ticker.add(fn);
     },
 
+    createGrid(self) {
+        let {gameStage} = self;
+        let grid = Grid.new(self.gridArgs);
+        grid.setInteractive();
+        gameStage.add(grid);
+        Layout.center({}, grid);
+        self.grid = grid;
+    },
+
+    start(self) {
+        M.init(self);
+        M.createMainMenu(self);
+    },
+
     stop(self) {
         M.unlistenKeys(self);
+        if (self.grid)
+            self.grid.destroy(false);
         self.actions.stop();
+    },
+
+    createMainMenu(self) {
+        let {gameStage} = self;
+        gameStage.createMenu({
+            title: "Snake",
+            showBg: false,
+            textStyle: {
+                fill: 0xaaff22,
+                fontSize: 110,
+            },
+        }, {
+            "New Game": ()=>{
+                gameStage.showMenuBar();
+                M.newGame(self);
+            },
+            "Help/Instructions": ()=>{
+            },
+            "Exit": ()=>{
+                gameStage.exitModule();
+            },
+        });
+    },
+
+    createPlayMenu(self) {
+        let {gameStage} = self;
+        gameStage.createMenu({
+            hide: true,
+            title: "paused",
+            showBg: false,
+            textStyle: {
+                fill: 0x990000,
+                fontSize: 50,
+            },
+            onShow: ()=> {
+                M.pause(self);
+            },
+            onHide: ()=> {
+                M.resume(self);
+            },
+        }, {
+            "Resume": ()=>{
+                gameStage.hideMenu();
+            },
+            "Quit": ()=>{
+                M.stop(self);
+                M.start(self);
+            },
+        });
+    },
+
+    resume(self) {
+        M.listenKeys(self);
+    },
+    pause(self) {
+        M.unlistenKeys(self);
     },
 
     async buildMaze(self) {
@@ -268,7 +334,7 @@ let M = {
     },
 
     unlistenKeys(self) {
-        for (let key of self.keys) {
+        for (let key of Object.values(self.keys)) {
             key.unlisten();
         }
     },

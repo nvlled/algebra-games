@@ -210,7 +210,11 @@ let M = {
                     }));
                 }
                 await Promise.all(promises);
-                await grid.dropVertical();
+                if (dir.x != 0) 
+                    await grid.dropHorizontal({dir: dir.x});
+                else
+                    await grid.dropVertical({dir: dir.y});
+
                 M.fillEmptyFiles(self);
             }
 
