@@ -20,8 +20,10 @@ let M = {
 
         let textures = [];
 
-        let width  = cols != null ? tileWidth*cols : image.width;
-        let height = rows != null ? tileHeight*rows : image.height;
+        let width  = cols != null && cols != 0
+            ? tileWidth*cols : image.width;
+        let height = rows != null && rows != 0
+            ? tileHeight*rows : image.height;
 
         let x = 0;
         let y = 0;
