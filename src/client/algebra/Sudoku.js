@@ -396,7 +396,9 @@ let M = {
     },
 
     isFixed(self, {x, y}) {
-        return self.fixed[grid.gameArray.indexOf({x, y})];
+        let sprite = self.grid.spriteAt({x, y});
+        if (sprite)
+            return sprite[FIXED];
     },
 
     onTileClick(self, {x, y}) {
@@ -594,10 +596,22 @@ let M = {
         M.init(self);
         M.createAlgebra(self);
         M.createGrid(self, size);
+        M.createButtons(self);
         M.checkTiles(self);
 
         M.createPlayMenu(self);
         self.gameStage.showMenuBar();
+    },
+
+    createButtons(self) {
+        let clearBtn = Button.create({
+            text: "clear",
+        });
+        clearBtn.pointerdown = () => {
+            M.clearSprites(self);
+        }
+        self.gameStage.add(clearBtn);
+        Layout.belowOf({align: "right"}, self.grid, clearBtn);
     },
 
     async gameWin(self) {
@@ -735,16 +749,16 @@ let M = {
         }
     },
 
-    //clearSprites(self) {
-    //    let {grid} = self;
-    //    grid.eachSprite(function(sprite, x, y) {
-    //        if ( ! self.fixed[grid.gameArray.indexOf({x, y})]) {
-    //            grid.clearHighlights();
-    //            grid.removeSprite({x, y});
-    //            sprite.destroy();
-    //        }
-    //    });
-    //},
+    clearSprites(self) {
+        let {grid} = self;
+        grid.eachSprite(function(sprite, x, y) {
+            if ( ! M.isFixed(self, {x, y})) {
+                grid.clearHighlights();
+                grid.removeSprite({x, y});
+                sprite.destroy();
+            }
+        });
+    },
 
     moveUp(self) {
         self.lastDir = {x: 0, y: -1};
