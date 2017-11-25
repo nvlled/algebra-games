@@ -146,6 +146,7 @@ let M = {
         bgStyle={},
 
     }) {
+        let self = {};
         let fgNormal = fgStyle.normal || 0xeeeeee;
         let bgNormal = bgStyle.normal || 0x003366;
 
@@ -244,13 +245,13 @@ let M = {
             drawRect("normal");
         });
         rect.on("pointerdown", () => {
-            container.pointerdown(text);
+            container.pointerdown(text, self);
             buttonText.style.fill = fgStyle.click;
             bgImage.tint = fgStyle.click;
             drawRect("click");
         });
         rect.on("pointerup", () => {
-            container.pointerup(text);
+            container.pointerup(text, self);
 
             bgImage.tint = fgStyle.normal;
             if (hovered) {
@@ -279,7 +280,7 @@ let M = {
         container.setSize({width, height});
         container.text = text;
 
-        return new Proxy(container, {
+        self = new Proxy(container, {
             set(target, name, value) {
                 if (name == "alpha") {
                     container.alpha = value;
@@ -303,6 +304,7 @@ let M = {
                 return true;
             },
         });
+        return self;
     },
 }
 
