@@ -28,7 +28,7 @@ let images = {
 
 let startSpeed = 2000;
 let speedDiff = 100;
-let nextLevelCount = 5;
+let nextLevelCount = 10;
 
 // gameplay:
 // the resulting element will be a bonus item instead
@@ -85,11 +85,10 @@ let btn = {
 let algebra = Algebra.new({
     identity: 'e',
     table: [
-        ["a", "a", "a", "e"],
-        ["b", "b", "b", "a"],
+        ["a", "a", "a", "b"],
+        ["b", "b", "b", "c"],
         ["c", "c", "c", "a"],
-        ["d", "d", "d", "e"],
-        ["a", "b", "c", "a"],
+        ["d", "d", "d", "d"],
     ],
 });
 
@@ -126,22 +125,18 @@ let M = {
             )
         });
 
+
+
         let tileSize = 25;
-        let createGrid = () => {
-            let tileMap = _ => PIXI.Texture.from(images.tile);
-            let grid = Grid.new({
-                speed: 300,
+        let tileMap = _ => PIXI.Texture.from(images.tile);
+        let gridArgs = {
+            speed: 300,
                 x, y, rows, cols, tileSize, tileSpace, tileMap,
                 alpha,
-            });
-            gameStage.add(grid);
-            Layout.centerOf({marginX: grid.width/4}, gameStage.world, grid);
-            grid.setInteractive(true);
-            self.grid = grid;
         }
 
         let self = {
-            createGrid,
+            gridArgs,
             //grid,
             algebra: galge,
             keys: {
@@ -187,6 +182,27 @@ let M = {
                 self.grid.clearSprites(true);
                 M.start(self);
             }, true);
+        }
+    },
+
+    createGrid(self) {
+        let {gameStage} = self;
+        let grid = self.grid = Grid.new(self.gridArgs);
+        gameStage.add(grid);
+        Layout.centerOf({marginX: grid.width/4}, gameStage.world, grid);
+        grid.setInteractive(true);
+        M.setupGridHandlers(self);
+    },
+
+    setupGridHandlers(self) {
+        let {gameStage, grid} = self;
+        grid.onTileDrag=(pos, pos_, dir)=> {
+            if (dir.y == 0)
+                self.actions.add(() => M.moveBlock(self, self.currentBlock, dir));
+            else if (dir.y < 0)
+                M.rotate(self);
+            else if (dir.y > 0)
+                M.release(self);
         }
     },
 
@@ -344,7 +360,8 @@ let M = {
     },
 
     async newGame(self) {
-        self.createGrid();
+        M.createPlayMenu(self);
+        M.createGrid(self);
         self.actions.start();
         self.running = true;
         M.listenKeys(self);
@@ -354,7 +371,6 @@ let M = {
         M.newBlock(self);
         M.startDescension(self);
         self.gameStage.changeBackground(Backgrounds.randomName());
-        M.createPlayMenu(self);
 
         let table = self.table = GraphicTable.new(self.algebra, {
             tileSize: 25,

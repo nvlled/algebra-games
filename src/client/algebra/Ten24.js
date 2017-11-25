@@ -48,6 +48,7 @@ let M = {
         tileSpace,
         x, y,
         speed=200,
+        seconds=0.3,
         stretch=.7,
     } = {}) {
         gameStage.setBackground(images.background);
@@ -58,9 +59,9 @@ let M = {
             gridArgs: {
                 x, y, rows, cols,
                 tileSize, tileSpace,
-                tileMap, speed,
+                tileMap, speed, seconds,
                 stretch,
-                easeFn: EasingFn.outElastic,
+                easeFn: EasingFn.outQuint,
             },
 
             gameStage,
@@ -212,7 +213,7 @@ let M = {
                 let p_ = rarr.translate(x,y+1);
                 let promise = self.grid.move({src: p_, dest: p, force: true})
                 grid.hightlightTiles([ p,p_ ]);
-                await Util.sleep(150);
+                await Util.sleep(50);
                 grid.clearHighlights();
 
                 let pos = grid.spritePos(sprite1);
@@ -273,11 +274,24 @@ let M = {
         Layout.centerOf({}, gameStage.world, grid);
         grid.clearSprites();
 
+        M.setupGridHandlers(self);
+        grid.setInteractive(true);
+
         M.createAlgebra(self);
         M.createGraphicTable(self);
 
         self.actions.start();
         self.randomInsert(3);
+    },
+
+    setupGridHandlers(self) {
+        let {gameStage, grid} = self;
+        grid.onTileDrag=(pos, pos_, dir)=> {
+            if (!(dir.x != 0 && dir.y != 0)) {
+                self.lastDir = Vec.norm(dir);
+                M.move(self);
+            }
+        }
     },
 
     createAlgebra(self) {
