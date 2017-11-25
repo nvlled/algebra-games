@@ -1,10 +1,10 @@
-let Util = require("src/client/algebra/Util"); 
-let GameArray = require("src/client/algebra/GameArray"); 
-let Waypoint = require("src/client/algebra/Waypoint"); 
-let Vec = require("src/client/algebra/Vec"); 
-let Block = require("src/client/algebra/Block"); 
-let Phys = require("src/client/algebra/Phys"); 
-let Anima = require("src/client/algebra/Anima"); 
+let Util = require("src/client/algebra/Util");
+let GameArray = require("src/client/algebra/GameArray");
+let Waypoint = require("src/client/algebra/Waypoint");
+let Vec = require("src/client/algebra/Vec");
+let Block = require("src/client/algebra/Block");
+let Phys = require("src/client/algebra/Phys");
+let Anima = require("src/client/algebra/Anima");
 let PixiUtil = require("src/client/algebra/PixiUtil");
 let PIXI = require("src/client/pixi");
 let {markGetterSetter} = Util;
@@ -16,6 +16,7 @@ function indexToXY({i, cols}) {
     }
 }
 
+let INTERACTIVE = Symbol("interactive");
 let MASK = Symbol("Mask");
 let POS = Symbol("Tile Pos");
 let BORDER = Symbol("Border");
@@ -46,6 +47,7 @@ let M = {
         fit=true,
         stretch=1.0,
         speed=300,
+        seconds,
         alpha=0.7,
         interactive=false,
         highlight=0xdd0000,
@@ -123,7 +125,8 @@ let M = {
             onTileDown,
             x, y,
             speed,
-            cols, rows, 
+            seconds,
+            cols, rows,
             tileWidth, tileHeight, tileSpace,
             fit, stretch,
             tiles,
@@ -142,6 +145,18 @@ let M = {
             return tile[POS];
     },
 
+    toggleInteractive(self, t) {
+        t = !!t;
+        let {rows, cols} = self;
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                let tile = M.tileAt(self, {x, y});
+                tile.interactive = t;
+                tile.buttonMode = t;
+            }
+        }
+    },
+
     setInteractive(self) {
         let start = null;
         let end = null;
@@ -154,7 +169,7 @@ let M = {
             sprite.removeListener("pointermove", onMove);
         }
         let onMove = function(e){
-            [end, wrapped] = M.globalToGridPos(self, e.data.global);
+            [end, wrapped] = M.globalToGridPos(self, e.data.global) || [];
             if (end) {
                 dir = Vec.new(end).sub(start).norm();
                 if (wrapped)
@@ -174,8 +189,8 @@ let M = {
         }
         let onUp = function(e) {
             clearListeners(this);
-            
-            if (end) { 
+
+            if (end) {
                 self.onTileDrag(start, end, dir, wrapped);
             } else {
                 self.onTileDrag(start, null, dir);
@@ -198,6 +213,7 @@ let M = {
                 tile.on("pointerdown", onDown);
             }
         }
+        self[INTERACTIVE] = true;
     },
 
     getRow(self, y, withNil=true) {
@@ -272,7 +288,7 @@ let M = {
 
     arrangeTiles(self) {
         let {
-            rows, cols, 
+            rows, cols,
             tiles, tileSpace,
             tileWidth, tileHeight,
         } = self;
@@ -366,7 +382,7 @@ let M = {
         stretch = Util.or(stretch, self.stretch);
 
         let tile = M.tileAt(self, {x, y});
-        if (!tile) 
+        if (!tile)
             return;
 
         let sprites = self.gameArray.data;
@@ -387,7 +403,8 @@ let M = {
             sprite.height = tile.height * stretch;
         }
 
-        sprite.anchor.set(0.5);
+        if (sprite.anchor)
+            sprite.anchor.set(0.5);
         sprite[POS] = {x, y};
         let {x: sx, y: sy} = M.getSpritePos(self, {x, y, sprite});
         sprite.x = sx;
@@ -417,7 +434,7 @@ let M = {
         let tile = M.tileAt(self, {x, y});
         let {x: tx, y: ty} = tile.getGlobalPosition();
         return Vec.create(
-            tx+tile.width/2, 
+            tx+tile.width/2,
             ty+tile.height/2,
         );
     },
@@ -436,6 +453,10 @@ let M = {
         if (self.gameArray.outbounds({x, y}))
             return null;
         let idx = y*self.cols + x;
+        return self.gameArray.data[idx];
+    },
+
+    spriteOn(self, idx) {
         return self.gameArray.data[idx];
     },
 
@@ -656,6 +677,8 @@ let M = {
         let pos_ = getpos(self, {sprite, x: dest.x, y: dest.y});
 
         speed = speed || self.speed;
+        seconds = seconds || self.seconds;
+
         if (jump)
              await Anima.teleport(sprite, {end: pos_, seconds: seconds || 0.3});
         else
@@ -794,7 +817,42 @@ let M = {
         return self.gameArray.isOccupied(pos);
     },
 
-    globalToGridPos(self, {x, y}) {
+    getIntersectingPoints(self, sprite, v = {}) {
+        let r = sprite.getBounds();
+        let gg = sprite.getGlobalPosition();
+        let {x, y, width, height} = r;
+        x += v.x || 0;
+        y += v.y || 0;
+        let p1 = {x, y};
+        let p2 = {x: x+width, y: y+height};
+        let p3 = {x: x, y: y+height};
+        let p4 = {x: x+width, y: y};
+
+        let blah = (p1, p2) => {
+            let [gp1] = M.globalToGridPos(self, p1) || [];
+            let [gp2] = M.globalToGridPos(self, p2) || [];
+
+            if (!(gp1 || gp2))
+                return [];
+
+            if (Vec.equals(p1, p2) || !gp2) {
+                return [gp1];
+            } else if (!gp1) {
+                return [gp2];
+            } else {
+                let points = Vec.range(gp1, gp2);
+                return points;
+            }
+        }
+        return blah(p1, p2).concat(blah(p3,p4));
+    },
+
+    highlightIntersectingPoints(self, sprite, v) {
+        let points = M.getIntersectingPoints(self, sprite, v);
+        M.hightlightTiles(self, points);
+    },
+
+    globalToGridPos(self, {x, y} = {}) {
         let [sx, sy] = [1, 1];
         let [px, py] = [0, 0];
         if (self.parent) {
