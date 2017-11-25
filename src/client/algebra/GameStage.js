@@ -99,7 +99,7 @@ let M = {
         });
         btn.scale.set(0.5);
         let menuBar = PixiUtil.roundedRect({
-            color: 0x551111,
+            color: 0x222222,
             width: self.world.width, height: 50, alpha: 0.4,
             x: 0,
             y: 0,

@@ -131,6 +131,7 @@ let M = {
             srcTile = self.grid.tileAt({x, y});
             srcTile.tint = 0xff0000;
         }
+
         self.grid.onTileClick = (pos) => {
             if (!pos)
                 return;
@@ -185,24 +186,6 @@ let M = {
 
             grid.move({src: pos_, dest: pos, force: true, apply: true});
             await grid.move({src: pos, dest: pos_, force: true, apply: true});
-
-            let {algebra} = self;
-            let size = algebra.getMaxArgLen();
-            let exclude = new Set();
-
-            let table = [];
-
-            for (let p of [pos, pos_]) {
-                if (!p)
-                    continue;
-                if (exclude.has(p))
-                    continue;
-                let params = await M.findCandidateParameters(self, {pos: p, size, exclude});
-                if (params.length > 0) {
-                    SetUtil.addAll(exclude, params);
-                    table = table.concat(params);
-                }
-            }
 
             //grid.move({src: pos_, dest: pos, force: true, apply: true});
             //await grid.move({src: pos, dest: pos_, force: true, apply: true});

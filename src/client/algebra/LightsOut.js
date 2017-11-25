@@ -12,6 +12,7 @@ let PIXI = require("src/client/pixi");
 let Algebra = require("src/client/algebra/Algebra");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let Layout = require("src/client/algebra/Layout");
+let Button = require("src/client/algebra/Button");
 let SetUtil = require("src/client/algebra/SetUtil");
 let PixiUtil = require("src/client/algebra/PixiUtil");
 
@@ -24,40 +25,88 @@ let images = {
     background: Backgrounds.dir+"/dark background.png",
 }
 
-//let algebra = Algebra.new({
-//    identity: 'e',
-//    table: [
-//        ["a", "a", "e"],
-//        ["b", "b", "a"],
-//        ["c", "c", "b"],
-//        ["a", "c", "b"],
-//        ["c", "b", "c"],
-//        ["a", "b", "b"],
-//    ],
-//});
-
-algebra = Algebra.new({
+let algebra = Algebra.new({
     identity: 'e',
     table: [
-        ["a", "a", "a", "a"],
-        ["b", "b", "b", "b"],
-        ["c", "c", "c", "c"],
-        ["d", "d", "d", "d"],
-        ["e", "e", "e", "e"],
+        ["a", "b", "a"],
+        ["b", "b", "a"],
     ],
 });
+
+let levels = [
+    [   0, 0, 0, 0, 1,
+        0, 0, 0, 1, 1,
+        0, 0, 0, 0, 1,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, ],
+
+    [   0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+        1, 0, 0, 0, 1,
+        1, 1, 0, 1, 1, ],
+
+    [   1, 1, 0, 1, 1,
+        0, 1, 1, 1, 0,
+        0, 1, 1, 1, 0,
+        0, 0, 1, 0, 0,
+        0, 0, 0, 0, 0, ],
+
+    [   0, 1, 0, 0, 0,
+        1, 1, 0, 0, 0,
+        0, 1, 1, 1, 0,
+        1, 1, 0, 0, 0,
+        0, 1, 0, 0, 0, ],
+    
+    [   1, 0, 0, 0, 1,
+        0, 1, 0, 1, 0,
+        0, 1, 0, 1, 0,
+        0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, ],
+
+    [   1, 1, 1, 0, 0,
+        1, 1, 1, 0, 0,
+        1, 0, 1, 1, 0,
+        1, 1, 1, 0, 0,
+        1, 1, 1, 0, 0, ],
+
+    [   1, 1, 0, 0, 0,
+        0, 0, 1, 1, 0,
+        0, 0, 1, 0, 0,
+        0, 1, 0, 1, 0,
+        1, 1, 0, 1, 1, ],
+
+    [   1, 0, 0, 0, 1,
+        1, 0, 0, 0, 1,
+        0, 1, 1, 1, 0,
+        0, 0, 1, 0, 0,
+        0, 0, 1, 0, 0, ],
+
+    [   1, 0, 0, 1, 1,
+        0, 1, 1, 1, 1,
+        0, 0, 0, 0, 1,
+        0, 0, 1, 1, 0,
+        0, 1, 0, 0, 1, ],
+
+    [   0, 0, 0, 0, 0,
+        0, 1, 1, 1, 0,
+        0, 0, 1, 0, 0,
+        1, 0, 1, 0, 1,
+        1, 0, 0, 0, 1, ],
+];
 
 let M = {
     create({
         gameStage,
         resources,
-        rows=8,
-        cols=8,
-        tileSize=40,
-        tileSpace,
+        rows=5,
+        cols=5,
+        tileSize=90,
+        tileSpace=8,
+        alpha=0.1,
         x, y,
         speed=200,
-        stretch=.8,
+        stretch=.9,
 
         onGameOver=()=>{},
     } = {}) {
@@ -94,7 +143,8 @@ let M = {
             gridArgs: {
                 x, y, rows, cols, tileSize, tileSpace, tileMap,
                 speed, stretch, interactive: true,
-                wrapDrag: false,
+                wrapDrag: true,
+                alpha,
             },
             algebra: galge,
             keys: {
@@ -110,6 +160,7 @@ let M = {
             timerId: null,
             lastDir: {x: 0, y: 0},
             actions: Actions.new({throttle: 350}),
+            currentLevel: 0,
         };
 
         return self;
@@ -122,111 +173,40 @@ let M = {
     },
 
     handleInput(self) {
-        let srcTile = null;
-        let destTile = null;
-
-        self.grid.onTileDown = ({x, y}) => {
-            srcTile = self.grid.tileAt({x, y});
-            srcTile.tint = 0xff0000;
-        }
-        self.grid.onTileClick = (pos) => {
-            if (!pos)
-                return;
-            let {x, y} = pos;
-            if (srcTile)
-                srcTile.tint = 0xffffff;
-            if (destTile)
-                destTile.tint = 0xffffff;
-        }
-
-        self.grid.onTileDragging = (pos, pos_, dir) => {
-            if (!dir)
-                return;
-            if (Vec.isZero(dir))
-                return;
-
-            if (destTile)
-                destTile.tint = 0xffffff;
-
-            destTile = self.grid.tileAt(pos_);
-            if (destTile)
-                destTile.tint = 0xff0000;
-        },
-
-        self.grid.onTileDrag = async (pos, pos_, dir, wrapped) => {
-            if (srcTile)
-                srcTile.tint = 0xffffff;
-            if (destTile)
-                destTile.tint = 0xffffff;
-
-            if (!dir)
-                return;
-
-            if (!Vec.isOrthogonal(dir))
-                return;
-            if (!wrapped && Vec.dist(pos, pos_) != 1)
-                return;
-
-            let {grid} = self;
-            let sprite = grid.spriteAt(pos);
-            let sprite_ = grid.spriteAt(pos_);
-            if (!sprite || !sprite_) {
-                return;
+        self.grid.onTileClick = async function(pos) {
+            await M.toggleAt(self, pos);
+            if (M.isComplete(self)) {
+                console.log("complete");
+                M.startNoise(self);
+                self.grid.toggleInteractive(false);
+                M.createWinGame(self);
             }
-
-            if (sprite.setState)
-                sprite.setState(Util.stateName(dir));
-
-            grid.move({src: pos_, dest: pos, force: true, apply: true});
-            await grid.move({src: pos, dest: pos_, force: true, apply: true});
-
-            let {algebra} = self;
-            let size = algebra.getMaxArgLen();
-            let exclude = new Set();
-
-            let table = [];
-
-            for (let p of [pos, pos_]) {
-                if (!p)
-                    continue;
-                if (exclude.has(p))
-                    continue;
-                let params = await M.findCandidateParameters(self, {pos: p, size, exclude});
-                if (params.length > 0) {
-                    SetUtil.addAll(exclude, params);
-                    table = table.concat(params);
-                }
-            }
-
-            let promises = [];
-            if (table.length == 0) {
-                grid.move({src: pos_, dest: pos, force: true, apply: true});
-                await grid.move({src: pos, dest: pos_, force: true, apply: true});
-            } else {
-                for (let row of table) {
-                    promises = promises.concat(row.map(s => {
-                        grid.removeSprite(s);
-                        return Anima.squeezeIn(s)
-                    }));
-                }
-                await Promise.all(promises);
-                if (dir.x != 0) 
-                    await grid.dropHorizontal({dir: dir.x});
-                else
-                    await grid.dropVertical({dir: dir.y});
-
-                M.fillEmptyFiles(self);
-            }
-
         }
     },
-    
+
+    isComplete(self) {
+        let {grid} = self;
+        let {gameArray} = grid;
+        let {cols, rows} = grid;
+        for (let i = 0; i < cols*rows; i++) {
+            let s = grid.gameArray.data[i];
+            if (s.visible)
+                return false;
+        }
+        return true;
+    },
+
     fillEmptyFiles(self) {
         let {grid, algebra} = self;
         for (let y = 0; y < grid.rows; y++) {
             for (let x = 0; x < grid.cols; x++) {
                 if (!grid.isOccupied({x, y})) {
-                    let s = algebra.randomSprite();
+                    //let s = algebra.randomSprite();
+                    let s = PixiUtil.roundedRect({
+                        color: Math.random() < 0.5 ? 0xff0000 : 0x0000ff,
+                        width: tileSize,
+                        height: height,
+                    });
                     grid.setSprite({sprite: s, x, y});
                     Anima.fade(s, {start: 0, end: 1});
                 }
@@ -312,23 +292,136 @@ let M = {
             self.grid.hightlightTiles(col, 0xff0000); 
     },
 
-    newGame(self) {
+    newGame(self, level=0) {
+        self.grid.toggleInteractive(true);
+        self.grid.visible = true;
+        M.selectLevel(self, level);
+
+        M.createPlayMenu(self);
+        self.gameStage.showMenuBar();
+        self.actions.start();
+        M.createPlayMenu(self);
+    },
+
+    initGrid(self) {
+        let {algebra, grid} = self;
+        let {rows, cols} = grid;
+        for (let n = 0; n < rows*cols; n++) {
+            let sprite = PixiUtil.roundedRect({
+                color: 0x0000ff,
+                width: grid.tileWidth,
+                height: grid.tileHeight,
+                renderer: self.gameStage.view,
+                alpha: 0.8,
+            });
+            let {x, y} = grid.toXY(n);
+            sprite.filters = [new PIXI.filters.BlurFilter(3)];
+            grid.setSprite({x, y, sprite});
+        }
+    },
+
+    selectLevel(self, level) {
+        let {algebra, grid} = self;
+        let {rows, cols} = grid;
+        let data = levels[level];
+        for (let n = 0; n < rows*cols; n++) {
+            let sprite = grid.spriteOn(n);
+            let {x, y} = grid.spritePos(sprite);
+            if (data[n] == 0)
+                sprite.visible = false;
+            else
+                sprite.visible = true;
+            sprite.alpha = 1;
+        }
+        self.currentLevel = level;
+    },
+
+    createLevelMenu(self) {
+        let {gameStage,resources} = self;
+        let mainMenu, buttons, caption, backBtn
+        let gameSelected = false;
+
+        let hide = async _=> {
+            await Anima.fade(mainMenu, {end: 0});
+            mainMenu.destroy();
+            caption.destroy();
+            backBtn.destroy();
+        }
+        let handler = async (text, btn) => {
+            if (gameSelected)
+                return;
+            hide();
+            M.newGame(self, btn.level);
+        }
+
+        let newBtn = text => Button.new({
+            text, 
+            fontSize: 40,
+            pointerdown: handler,
+            bgStyle: {
+                normal: 0x662200,
+            }
+        });
+
+        buttons = [];
+        for (var i = 0; i < levels.length; i++) {
+            let btn = newBtn((i+1)+"");
+            btn.level = i;
+            buttons.push(btn);
+        }
+
+        mainMenu = Layout.table(
+            {
+                cols: 5, 
+                margin: 20, 
+            }, 
+            ...buttons
+        );
+        backBtn = Button.create({
+            text: "back",
+            fontSize: 25,
+            bgStyle: {
+                normal: 0x333333,
+            },
+            pointerdown: () => {
+                hide();
+                M.createMainMenu(self);
+            },
+        });
+        caption = new PIXI.Text("Select level", {
+            fill: 0xdddddd,
+            fontSize: 20,
+        });
+
+        gameStage.addUI(mainMenu);
+        Layout.centerOf({}, gameStage.ui, mainMenu);
+        Layout.aboveOf({}, mainMenu, caption);
+        Layout.belowOf({align: "right"}, mainMenu, backBtn);
+
+        mainMenu.visible = false;
+        self.menu = mainMenu;
+        self.menu.visible = true;
+        gameStage.hideMenu();
+        gameStage.hideMenuBar();
+    },
+
+    start(self) {
+        M.init(self);
+        M.createMainMenu(self);
+
         let grid = self.grid = Grid.new(self.gridArgs);
         let {rows, cols} = self.grid;
         let {gameStage} = self;
         grid.setInteractive();
         gameStage.add(grid);
         Layout.centerOf({}, gameStage.world, grid);
-
+        self.noiseFilter = new PIXI.filters.NoiseFilter(0.1);
+        grid.filters = [self.noiseFilter];
         M.handleInput(self);
-        M.randomize(self, rows*cols);
-        M.createPlayMenu(self);
-        self.actions.start();
-    },
+        M.initGrid(self);
 
-    start(self) {
-        M.init(self);
-        M.createMainMenu(self);
+        grid.visible = false;
+        grid.toggleInteractive(false);
     },
 
     stop(self) {
@@ -336,21 +429,22 @@ let M = {
         if (self.grid)
             self.grid.destroy({children: true});
         self.actions.stop();
+        M.stopNoise(self);
     },
 
     createMainMenu(self) {
         let {gameStage} = self;
         gameStage.createMenu({
-            title: "Pairswap",
+            title: "Lights Out",
             showBg: false,
             textStyle: {
-                fill: 0xaaaa22,
-                fontSize: 110,
+                fill: 0x3353dd,
+                fontSize: 90,
             },
         }, {
             "New Game": ()=>{
                 gameStage.showMenuBar();
-                M.newGame(self);
+                M.createLevelMenu(self);
             },
             "Help/Instructions": ()=>{
             },
@@ -387,6 +481,48 @@ let M = {
         });
     },
 
+    createWinGame(self) {
+        let {gameStage} = self;
+        gameStage.createMenu({
+            title: "level complete",
+            showBg: false,
+            textStyle: {
+                fill: 0x000088,
+                fontSize: 50,
+            },
+            onShow: ()=> {
+                M.pause(self);
+            },
+            onHide: ()=> {
+                M.resume(self);
+            },
+        }, {
+            "next ": async ()=>{
+                self.gameStage.hideMenu();
+                await M.stopNoise(self);
+                M.newGame(self, self.currentLevel+1);
+            },
+            "back to main": ()=>{
+                M.stop(self);
+                M.start(self);
+            },
+        });
+    },
+
+    startNoise(self) {
+        self.noiseTimer = setInterval(function() {
+            let i = Util.randomIndex(self.grid.gameArray.data);
+            let {x, y} = self.grid.toXY(i);
+            self.noisePs = M.toggleAt(self, {x, y});
+            self.noiseFilter.seed = Math.random();
+        }, 300);
+    },
+
+    async stopNoise(self) {
+        clearInterval(self.noiseTimer);
+        await self.noisePs;
+    },
+
     resume(self) {
         M.listenKeys(self);
     },
@@ -419,12 +555,46 @@ let M = {
         let filled = {};
         for (let n = 0; n < count; n++) {
             let elem = algebra.randomElement(false);
-            let sprite = algebra.createSprite(elem);
-            let [_, i] = Util.randomSelect(grid.tiles, filled);
-            filled[i] = true;
-            filled[elem] = true;
-            let {x, y} = grid.toXY(i);
+
+            let sprite = PixiUtil.roundedRect({
+                color: 0x0000ff,
+                width: grid.tileWidth,
+                height: grid.tileHeight,
+                renderer: self.gameStage.view,
+                alpha: 0.8,
+            });
+            let {x, y} = grid.toXY(n);
+            sprite.filters = [new PIXI.filters.BlurFilter(3)];
             grid.setSprite({x, y, sprite});
+        }
+    },
+
+    async toggleAt(self, {x, y}, on) {
+        let ps = 
+            [ Vec.left, Vec.right, Vec.down, Vec.up, o=>o]
+            .map(f => {
+                let p = f({x, y});
+                return M.lightAt(self, p);
+            });
+        return Promise.all(ps);
+    },
+
+    async lightAt(self, {x, y}, on) {
+        let {grid} = self;
+        let s = grid.spriteAt({x, y});
+        if (!s)
+            return;
+        if (on == null) {
+            on = !s.visible;
+        }
+
+        if (on) {
+            s.visible = true;
+            await Anima.fade(s, {start: 0, end: 1, seconds: 0.5});
+        } else {
+            s.visible = true;
+            await Anima.fade(s, {end: 0, seconds: 0.5});
+            s.visible = false;
         }
     },
 
@@ -440,6 +610,8 @@ let M = {
     },
 
 }
+
 M.new = Util.constructor(M);
 module.exports = M;
+
 

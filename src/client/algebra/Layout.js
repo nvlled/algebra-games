@@ -74,15 +74,18 @@ let M = {
             margin=5,
             marginX=margin,
             marginY=margin,
-            center=true,
+            center=false,
+            align,// left,right,center
             container,
             width=0,
         } = args;
+        sprite1.parent.addChild(sprite2);
         sprite2.y = sprite1.y+sprite1.height+marginY; 
-        if (center)
-            sprite2.x = sprite1.width/2 - sprite2.width/2;
-        else
-            sprite2.x = sprite1.x;
+        sprite2.x = sprite1.x;
+        if (center || align == "center")
+            sprite2.x += sprite1.width/2 - sprite2.width/2;
+        else if (align == "right")
+            sprite2.x += sprite1.width - sprite2.width;
     },
 
     aboveOf(args, sprite1, sprite2) {
@@ -94,6 +97,7 @@ let M = {
             container,
             width=0,
         } = args;
+        sprite1.parent.addChild(sprite2);
         sprite2.y = sprite1.y-sprite2.height-marginY; 
         sprite2.x = sprite1.x;
     },
@@ -247,7 +251,5 @@ let M = {
 
         return container;
     },
-
 }
-
 module.exports = M;

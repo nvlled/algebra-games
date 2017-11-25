@@ -163,6 +163,7 @@ let M = {
 
             window.location.hash = text;
             gameSelected = true;
+            gameStage.fadeOutBackground();
             buttons.forEach(async (s, i) => {
                 if (s.text != text) {
                     setTimeout(async () => {
@@ -173,7 +174,6 @@ let M = {
                     return;
                 }
 
-                gameStage.fadeOutBackground();
                 Layout.centerOf(
                     {animate: true}, 
                     mainMenu,
@@ -206,11 +206,12 @@ let M = {
             newBtn("Memrise"),
             newBtn("Snake"),
             newBtn("Slider"),
+            newBtn("LightsOut"),
         ];
 
         mainMenu = Layout.table(
             {
-                cols: 4, 
+                cols: 3, 
                 margin: 20, 
                 height: 100
             }, 
