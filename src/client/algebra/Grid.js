@@ -377,7 +377,7 @@ let M = {
         }
     },
 
-    setSprite(self, {x, y, sprite, fit, stretch}) {
+    setSprite(self, {x, y, sprite, fit, stretch, index}) {
         fit = Util.or(fit, self.fit);
         stretch = Util.or(stretch, self.stretch);
 
@@ -395,8 +395,12 @@ let M = {
         if (!sprite)
             return;
 
-        if (sprite.parent == null)
-            self.addChild(sprite);
+        if (sprite.parent == null) {
+            if (index != null)
+                self.addChildAt(sprite, index);
+            else
+                self.addChild(sprite);
+        }
 
         if (fit) {
             sprite.width = tile.width * stretch;
@@ -652,6 +656,20 @@ let M = {
         }
     },
 
+    async moveBy(self, args) {
+        let sprite = args.sprite;
+        let src = args.src;
+        let step = args.step;
+        if (sprite && sprite[POS])
+            src = sprite[POS];
+
+        let dest = Vec.new(src).add(step);
+        args.src = src;
+        args.dest = dest;
+
+        return M.move(self, args);
+    },
+
     async move(self, {sprite, src, dest,
         force=false,
         apply=false,
@@ -668,7 +686,7 @@ let M = {
         if (!sprite)
             return;
         if (self.gameArray.isOccupied({x: dest.x, y: dest.y}) && !force) {
-            console.log("move cancelled, tile is occupied");
+            //console.log("move cancelled, tile is occupied");
             return;
         }
 
@@ -680,7 +698,7 @@ let M = {
         seconds = seconds || self.seconds;
 
         if (jump)
-             await Anima.teleport(sprite, {end: pos_, seconds: seconds || 0.3});
+             await Anima.teleport(sprite, {end: pos_, seconds: seconds*0.25});
         else
             await Anima.move(sprite, {end: pos_, speed: speed, seconds, easeFn})
 
@@ -731,8 +749,8 @@ let M = {
                 container: self,
                 p1, p2,
                 color: color || 0x000055,
-                lineWidth: size/2,
-                alpha: 0.8,
+                lineWidth: size,
+                alpha: 0.95,
             });
         }
         let tl = M.toPixel(self, {x, y}).add({x: -size*.25, y: -size*.25});
@@ -817,6 +835,10 @@ let M = {
         return self.gameArray.isOccupied(pos);
     },
 
+    outbounds(self, pos) {
+        return self.gameArray.outbounds(pos);
+    },
+
     getIntersectingPoints(self, sprite, v = {}) {
         let r = sprite.getBounds();
         let gg = sprite.getGlobalPosition();
@@ -895,6 +917,35 @@ let M = {
             y = y_;
         }
         return [{x, y}, wrapped];
+    },
+
+    adjacentPoints(self, pos) {
+        let dirs = ["up", "right", "left", "down"];
+        let poss = [];
+        for (let d of dirs) {
+            let f = Vec[d];
+            let pos_ = f(pos);
+            if (!M.outbounds(self, pos))
+                poss.push(pos_);
+        }
+        return poss;
+    },
+
+    adjacentSprites(self, pos) {
+        let dirs = ["up", "right", "left", "down"];
+        let sprites = [];
+        for (let d of dirs) {
+            let f = Vec[d];
+            let pos_ = f(pos);
+            let sprite = M.spriteAt(self, pos_);
+            if (sprite)
+                sprites.push(sprite);
+        }
+        return sprites;
+    },
+
+    getDataSize(self) {
+        return self.gameArray.data.length;
     },
 
     hideTiles(self, ...indices) {
