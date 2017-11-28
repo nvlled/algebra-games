@@ -37,6 +37,8 @@ function Keyboard(keyCode) {
     );
   }
   key.unlisten = () => {
+      key.isDown = false;
+      key.isUp = true;
     window.removeEventListener(
         "keydown", key.downHandler
     );
