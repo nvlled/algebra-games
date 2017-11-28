@@ -101,19 +101,16 @@ let M = {
         resources,
         rows=5,
         cols=5,
-        tileSize=90,
+        tileSize=70,
         tileSpace=8,
-        alpha=0.1,
+        alpha=0.2,
         x, y,
         speed=200,
-        stretch=.9,
+        stretch=.7,
 
         onGameOver=()=>{},
     } = {}) {
         gameStage.setBackground(images.background);
-
-        //let CoinSprites = require("src/client/algebra/CoinSprites").new();
-        //let ctors = CoinSprites.getConstructors(resources);
 
         let Rsrc = require("src/client/algebra/Rsrc");
         let sprites = Rsrc.konett();
@@ -125,13 +122,6 @@ let M = {
             textures: Object.assign(
                 {},
                 Util.joinKeyval(algebra.elems, sprites),
-                //{
-                //    a: sprites[2],
-                //    b: sprites[1],
-                //    c: sprites[0],
-                //    equals: resources["equals"].texture,
-                //    [algebra.identity]:  resources["blob"].texture,
-                //}
             )
         });
 
@@ -196,24 +186,6 @@ let M = {
         return true;
     },
 
-    fillEmptyFiles(self) {
-        let {grid, algebra} = self;
-        for (let y = 0; y < grid.rows; y++) {
-            for (let x = 0; x < grid.cols; x++) {
-                if (!grid.isOccupied({x, y})) {
-                    //let s = algebra.randomSprite();
-                    let s = PixiUtil.roundedRect({
-                        color: Math.random() < 0.5 ? 0xff0000 : 0x0000ff,
-                        width: tileSize,
-                        height: height,
-                    });
-                    grid.setSprite({sprite: s, x, y});
-                    Anima.fade(s, {start: 0, end: 1});
-                }
-            }
-        }
-    },
-
     async findCandidateParameters(self, {pos, size, matchSize=true, exclude=[]}) {
         let excludeSet = exclude instanceof Set ? exclude : new Set(exclude);
         let shouldInclude = x => !excludeSet.has(x);
@@ -229,14 +201,10 @@ let M = {
                     sprites.push(sprite);
             }
             if (!matchSize || sprites.length == size) {
-                //PixiUtil.tintAll(sprites, 0xff0000);
-                //await Util.sleep(100);
-                //PixiUtil.tintAll(sprites);
 
                 if (algebra.applySprites(...sprites)) {
                     result.push(sprites);
                     return result;
-                    //return sprites;
                 }
             }
         }
@@ -248,14 +216,10 @@ let M = {
                     sprites.push(sprite);
             }
             if (!matchSize || sprites.length == size) {
-                //PixiUtil.tintAll(sprites, 0xff0000);
-                //await Util.sleep(500);
-                //PixiUtil.tintAll(sprites);
 
                 if (algebra.applySprites(...sprites)) {
                     result.push(sprites);
                     break;
-                    //return sprites;
                 }
             }
         }
@@ -277,7 +241,6 @@ let M = {
         let elem = alg.getElem(sprite);
         row = row.filter(pos_ => {
             let sprite_ = grid.spriteAt(pos_);
-            //return elem == alg.getElem(sprite_) && sprite != sprite_;
             return elem == alg.getElem(sprite_);
 
         });
@@ -306,16 +269,21 @@ let M = {
     initGrid(self) {
         let {algebra, grid} = self;
         let {rows, cols} = grid;
-        for (let n = 0; n < rows*cols; n++) {
-            let sprite = PixiUtil.roundedRect({
-                color: 0x0000ff,
-                width: grid.tileWidth,
-                height: grid.tileHeight,
-                renderer: self.gameStage.view,
-                alpha: 0.8,
+        let blurVal = Util.cycle(8, 15, 0.10);
+        let blur = new PIXI.filters.BlurFilter(blurVal());
+
+        if (!self.blurLoop) {
+            self.blurLoop = Util.loop(function() {
+                blur.blur = blurVal();
             });
+        }
+
+        for (let n = 0; n < rows*cols; n++) {
+            let sprite = PIXI.Sprite.fromImage("fireball");
+            sprite.alpha = 0.7;
+            sprite.tint = 0x00ff00;
             let {x, y} = grid.toXY(n);
-            sprite.filters = [new PIXI.filters.BlurFilter(3)];
+            sprite.filters = [blur];
             grid.setSprite({x, y, sprite});
         }
     },
@@ -415,8 +383,6 @@ let M = {
         grid.setInteractive();
         gameStage.add(grid);
         Layout.centerOf({}, gameStage.world, grid);
-        self.noiseFilter = new PIXI.filters.NoiseFilter(0.1);
-        grid.filters = [self.noiseFilter];
         M.handleInput(self);
         M.initGrid(self);
 
@@ -429,6 +395,10 @@ let M = {
         if (self.grid)
             self.grid.destroy({children: true});
         self.actions.stop();
+        if (self.blurLoop) {
+            self.blurLoop.stop();
+            self.blurLoop = null;
+        }
         M.stopNoise(self);
     },
 
@@ -514,7 +484,6 @@ let M = {
             let i = Util.randomIndex(self.grid.gameArray.data);
             let {x, y} = self.grid.toXY(i);
             self.noisePs = M.toggleAt(self, {x, y});
-            self.noiseFilter.seed = Math.random();
         }, 300);
     },
 
@@ -528,45 +497,6 @@ let M = {
     },
     pause(self) {
         M.unlistenKeys(self);
-    },
-
-    moveUp(self) {
-        self.lastDir = {x: 0, y: -1};
-        return self.actions.add(_=> self.grid.dropVertical({dir: -1}));
-    },
-
-    moveLeft(self) {
-        self.lastDir = {x: -1, y: 0};
-        return self.actions.add(_=> self.grid.dropHorizontal({dir: -1}));
-    },
-
-    moveRight(self) {
-        self.lastDir = {x:  1, y: 0};
-        return self.actions.add(_=> self.grid.dropHorizontal({dir: 1}));
-    },
-
-    moveDown(self) {
-        self.lastDir = {x: 0, y:  1};
-        return self.actions.add(_=> self.grid.dropVertical({dir: 1}));
-    },
-
-    randomize(self, count) {
-        let {algebra, grid} = self;
-        let filled = {};
-        for (let n = 0; n < count; n++) {
-            let elem = algebra.randomElement(false);
-
-            let sprite = PixiUtil.roundedRect({
-                color: 0x0000ff,
-                width: grid.tileWidth,
-                height: grid.tileHeight,
-                renderer: self.gameStage.view,
-                alpha: 0.8,
-            });
-            let {x, y} = grid.toXY(n);
-            sprite.filters = [new PIXI.filters.BlurFilter(3)];
-            grid.setSprite({x, y, sprite});
-        }
     },
 
     async toggleAt(self, {x, y}, on) {
@@ -590,10 +520,10 @@ let M = {
 
         if (on) {
             s.visible = true;
-            await Anima.fade(s, {start: 0, end: 1, seconds: 0.5});
+            await Anima.fade(s, {start: 0, end: 1, seconds: 0.3});
         } else {
             s.visible = true;
-            await Anima.fade(s, {end: 0, seconds: 0.5});
+            await Anima.fade(s, {end: 0, seconds: 0.3});
             s.visible = false;
         }
     },

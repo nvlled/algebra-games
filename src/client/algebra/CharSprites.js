@@ -56,15 +56,6 @@ let M = {
             }
         }
         return ctors;
-
-        //sprite.width = 64;
-        //sprite.height = 64;
-        //sprite.y = 64;
-        //sprite.x = 64;
-
-        //sprite.setState("walkRight");
-        //setTimeout(x=>sprite.setState("walkLeft"), 2000);
-        //gameStage.addChild(sprite);
     },
 }
 

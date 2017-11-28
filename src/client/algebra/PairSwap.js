@@ -11,6 +11,7 @@ let EasingFn = require("src/client/algebra/EasingFn");
 let PIXI = require("src/client/pixi");
 let Algebra = require("src/client/algebra/Algebra");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
+let GraphicTable = require("src/client/algebra/GraphicTable");
 let Layout = require("src/client/algebra/Layout");
 let SetUtil = require("src/client/algebra/SetUtil");
 let PixiUtil = require("src/client/algebra/PixiUtil");
@@ -20,7 +21,7 @@ let Backgrounds = require("src/client/algebra/Backgrounds");
 let GridTiles = require("src/client/algebra/GridTiles");
 
 let images = {
-    tile: GridTiles.get("ground_05.png"),
+    tile: GridTiles.get("ground_04.png"),
     background: Backgrounds.dir+"/dark background.png",
 }
 
@@ -36,14 +37,15 @@ let images = {
 //    ],
 //});
 
-algebra = Algebra.new({
-    identity: 'e',
+let algebra = Algebra.new({
     table: [
         ["a", "a", "a", "a"],
         ["b", "b", "b", "b"],
         ["c", "c", "c", "c"],
         ["d", "d", "d", "d"],
         ["e", "e", "e", "e"],
+        ["f", "f", "f", "e"],
+        ["g", "g", "g", "e"],
     ],
 });
 
@@ -324,6 +326,18 @@ let M = {
         M.randomize(self, rows*cols);
         M.createPlayMenu(self);
         self.actions.start();
+
+        let table = self.table = GraphicTable.new(self.algebra, {
+            hideLastCol: true,
+            tileSize: 25,
+            tileSpace: 0.1,
+            stretch: 0.8,
+            tileMap: function(x, y, id) {
+                return null;
+            },
+        });
+        self.gameStage.add(table.grid);
+        Layout.leftOf({align: "right"}, self.grid, table.grid);
     },
 
     start(self) {
@@ -336,6 +350,8 @@ let M = {
         if (self.grid)
             self.grid.destroy({children: true});
         self.actions.stop();
+        if (self.table)
+            self.table.grid.destroy({children: true});
     },
 
     createMainMenu(self) {

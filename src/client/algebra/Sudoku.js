@@ -77,8 +77,8 @@ let M = {
     } = {}) {
 
         gameStage.setBackground(images.background);
-        let tileSize = 70;
-        let tileSpace = 10;
+        let tileSize = 45;
+        let tileSpace = 2;
 
 
         let size = 6;
@@ -118,7 +118,7 @@ let M = {
             for (let x = 0; x < size; x += bs.cols) {
                 grid.surroundBorder(Vec.range(
                     {x, y}, {x: x+bs.cols-1, y: y+bs.rows-1},
-                ), {color: 0x330000, alpha: 0.9});
+                ), {color: 0xdd4444, alpha: 1.0});
             }
         }
     },
@@ -374,10 +374,10 @@ let M = {
             let blah = Layout.col({
                 center: true,
                 marginX: -20,
-                width: tileSize*.8,
-                height: tileSize*.8,
+                width: tileSize*.7,
+                height: tileSize*.7,
             }, ...elemSprites);
-            Layout.leftOf({}, self.grid, blah);
+            Layout.leftOf({align:"left"}, self.grid, blah);
             elemSprites.forEach(s => {
                 s.interactive = true;
                 s.buttonMode = true;
@@ -606,12 +606,20 @@ let M = {
     createButtons(self) {
         let clearBtn = Button.create({
             text: "clear",
+            fontSize: 15,
+            fgStyle: {
+                normal: 0xffffff,
+            },
+            bgStyle: {
+                normal: 0x333333,
+            },
         });
         clearBtn.pointerdown = () => {
             M.clearSprites(self);
         }
         self.gameStage.add(clearBtn);
-        Layout.belowOf({align: "right"}, self.grid, clearBtn);
+        Layout.leftOf({align: "right", marginY: 10}, self.grid, clearBtn);
+        self.clearBtn = clearBtn;
     },
 
     async gameWin(self) {
@@ -729,6 +737,9 @@ let M = {
         }
         for (let s of self.createdSprites) {
             s.destroy();
+        }
+        if (self.clearBtn) {
+            self.clearBtn.destroy({children: true});
         }
         self.createdSprites.splice(0);
         M.unlistenKeys(self);

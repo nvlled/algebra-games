@@ -27,19 +27,7 @@ let images = {
 
 let BLANK = Symbol("blank");
 
-//let algebra = Algebra.new({
-//    identity: 'e',
-//    table: [
-//        ["a", "a", "e"],
-//        ["b", "b", "a"],
-//        ["c", "c", "b"],
-//        ["a", "c", "b"],
-//        ["c", "b", "c"],
-//        ["a", "b", "b"],
-//    ],
-//});
-
-algebra = Algebra.new({
+let algebra = Algebra.new({
     identity: 'e',
     table: [
         ["a", "a", "a", "a"],
@@ -54,12 +42,12 @@ let M = {
     create({
         gameStage,
         resources,
-        rows=6,
-        cols=6,
-        tileSize=80,
+        rows=4,
+        cols=4,
+        tileSize=100,
         tileSpace=0,
         x, y,
-        speed=200,
+        seconds=0.3,
         stretch=.95,
 
         onGameOver=()=>{},
@@ -78,13 +66,6 @@ let M = {
             textures: Object.assign(
                 {},
                 Util.joinKeyval(algebra.elems, sprites),
-                //{
-                //    a: sprites[2],
-                //    b: sprites[1],
-                //    c: sprites[0],
-                //    equals: resources["equals"].texture,
-                //    [algebra.identity]:  resources["blob"].texture,
-                //}
             )
         });
 
@@ -95,8 +76,8 @@ let M = {
             resources,
             gridArgs: {
                 x, y, rows, cols, tileSize, tileSpace, tileMap,
-                speed, stretch, interactive: true,
-                wrapDrag: true,
+                seconds, stretch, interactive: true,
+                wrapDrag: false,
             },
             algebra: galge,
             keys: {
@@ -123,6 +104,15 @@ let M = {
         self.initialized = true;
     },
 
+    getNearBlankTile(self, pos) {
+        let {grid} = self;
+        let points = 
+            self.grid.adjacentSprites(pos)
+                .filter(s => s[BLANK])
+                .map(s => grid.spritePos(s));
+        return points[0];
+    },
+
     handleInput(self) {
         let srcTile = null;
         let destTile = null;
@@ -132,14 +122,18 @@ let M = {
             srcTile.tint = 0xff0000;
         }
 
-        self.grid.onTileClick = (pos) => {
+        self.grid.onTileClick = async (pos) => {
             if (!pos)
                 return;
-            let {x, y} = pos;
-            if (srcTile)
-                srcTile.tint = 0xffffff;
-            if (destTile)
-                destTile.tint = 0xffffff;
+            srcTile = self.grid.tileAt(pos);
+            srcTile.tint = 0xffffff;
+
+            let {grid} = self;
+            let pos_ = M.getNearBlankTile(self, pos);
+            if (pos_) {
+                grid.move({src: pos_, dest: pos, force: true, apply: true});
+                await grid.move({src: pos, dest: pos_, force: true, apply: true});
+            }
         }
 
         self.grid.onTileDragging = (pos, pos_, dir) => {
@@ -180,9 +174,6 @@ let M = {
             if (!(sprite[BLANK] || sprite_[BLANK])) {
                 return;
             }
-
-            if (sprite.setState)
-                sprite.setState(Util.stateName(dir));
 
             grid.move({src: pos_, dest: pos, force: true, apply: true});
             await grid.move({src: pos, dest: pos_, force: true, apply: true});
@@ -284,7 +275,7 @@ let M = {
             self.grid.hightlightTiles(col, 0xff0000); 
     },
 
-    newGame(self) {
+    async newGame(self) {
         let grid = self.grid = Grid.new(self.gridArgs);
         let {rows, cols} = self.grid;
         let {gameStage} = self;
@@ -292,10 +283,40 @@ let M = {
         gameStage.add(grid);
         Layout.centerOf({}, gameStage.world, grid);
 
-        M.handleInput(self);
-        self.randomize(rows*cols);
         M.createPlayMenu(self);
+        self.setupGrid(rows*cols);
+
+        //await Util.sleep(500);
+        await M.shuffle(self);
+        await M.selectBlankTile(self);
+
+        M.handleInput(self);
         self.actions.start();
+    },
+
+    async swap(self, pos1, pos2) {
+        let {grid} = self;
+        grid.move({src: pos2, dest: pos1, force: true, apply: true, seconds: 0.1});
+        await grid.move({src: pos1, dest: pos2, force: true, apply: true, seconds: 0.1});
+    },
+
+    async shuffle(self) {
+        let {grid} = self;
+        let indices = Util.shuffle(Util.range(grid.getDataSize()));
+        let fns = ["left", "right", "up", "down"].map(k => Vec[k]);
+        for (let i of indices) {
+            let pos = grid.toXY(i);
+            let pos_ = null;
+            Util.shuffle(fns);
+            for (let f of fns) {
+                pos_ = f(pos);
+                if (!grid.outbounds(pos_) && grid.hasSprite(pos_))
+                    break;
+                pos_ = null;
+            }
+            if (pos_)
+                await M.swap(self, pos, pos_);
+        }
     },
 
     start(self) {
@@ -386,8 +407,7 @@ let M = {
         return self.actions.add(_=> self.grid.dropVertical({dir: 1}));
     },
 
-    randomize(self, count) {
-        let {algebra, grid} = self;
+    setupGrid(self, count) {
         //let filled = {};
         //for (let n = 0; n < count; n++) {
         //    let elem = algebra.randomElement(false);
@@ -399,8 +419,14 @@ let M = {
         //    grid.setSprite({x, y, sprite});
         //}
 
+        let {algebra, grid} = self;
         let {rows, cols} = grid;
-        let image = PIXI.Texture.from("static/images/backgrounds/wizardtower.png");
+        let images = [
+            "static/images/armadillo.jpg",
+            "static/images/hare.jpg",
+            "static/images/racoon.jpg",
+        ];
+        let image = PIXI.Texture.from(Util.randomSelect(images)[0]);
 
         //self.gameStage.add(image);
 
@@ -421,14 +447,19 @@ let M = {
             }
         }
 
+    },
+
+    selectBlankTile(self) {
+        let {algebra, grid} = self;
+        let {rows, cols} = grid;
         let i = Util.randomIndex(grid.tiles);
         let {x, y} = grid.toXY(i);
         let blankTile = PIXI.Sprite.fromImage(images.tile);
         blankTile.tint = 0x000000;
-        blankTile.alpha = 0.0;
-        blankTile[BLANK] = true;
+        blankTile[BLANK] = "blank";
         self.grid.removeSprite({x, y}, true);
         self.grid.setSprite({sprite: blankTile, x, y, stretch: 1});
+        return Anima.fade(blankTile, {end: 0, seconds: 0.5});
     },
 
     listenKeys(self) {

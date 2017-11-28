@@ -55,14 +55,36 @@ let M = {
         return g;
     },
 
-    roundedRect({x=0, y=0, width, height, radius=12, color=0x222222, alpha=1}) {
+    roundedRect({
+        x=0, y=0, width, height,
+        radius=12, color=0x222222, alpha=1, renderer
+    }) {
         let g = new PIXI.Graphics();
         g.beginFill(color, alpha);
         g.drawRoundedRect(x, y,
         //g.drawRoundedRect(0, 0,
             width, height, radius);
         g.endFill();
-        return g;
+
+        if (!renderer)
+            return g;
+
+        let rt = PIXI.RenderTexture.create(width, height);
+        renderer.render(g, rt);
+        let sprite = new PIXI.Sprite(rt);
+        //sprite.alpha = alpha;
+
+        return sprite;
+    },
+
+    intersects(sprite1, sprite2) {
+        let r1 = sprite2.getBounds();
+        let r2 = sprite2.getBounds();
+        let {width: w, height: h} = r2;
+        return r1.contains(r2.x,   r2.y)
+            || r1.contains(r2.x+w, r2.y+h)
+            || r1.contains(r2.x+w, r2.y)
+            || r1.contains(r2.x+w, r2.y+h);
     },
 }
 

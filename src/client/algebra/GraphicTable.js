@@ -15,7 +15,9 @@ let M = {
 
         grid.eachRowIndex(y => {
             let row = algebra.table[y].slice();
-            if (row.length < args.cols) {
+            if (args.hideLastCol)
+                row.pop();
+            else if (row.length < args.cols) {
                 let z = row.pop();
                 row.push("equals");
                 row.push(z);

@@ -2,10 +2,12 @@
 let Actions = require("src/client/algebra/Actions");
 let Algebra = require("src/client/algebra/Algebra");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
+let GraphicTable = require("src/client/algebra/GraphicTable");
 let Anima = require("src/client/algebra/Anima");
 let Waypoint = require("src/client/algebra/Waypoint");
 let Util = require("src/client/algebra/Util");
 let Vec = require("src/client/algebra/Vec");
+let Backgrounds = require("src/client/algebra/Backgrounds");
 let Grid = require("src/client/algebra/Grid");
 let Block = require("src/client/algebra/Block");
 let Keyboard = require("src/client/algebra/Keyboard");
@@ -16,37 +18,29 @@ let PIXI = require("src/client/pixi");
 
 let GridTiles = require("src/client/algebra/GridTiles");
 
-let algebra = Algebra.new({
-    identity: 'e',
-    table: [
-        ["a", "a", "e"],
-        ["b", "b", "a"],
-        ["c", "c", "b"],
-        ["a", "c", "b"],
-        ["c", "b", "c"],
-        ["a", "b", "b"],
-    ],
-});
-
-// ___*____________________
-// ___**___________________
-// ____**__________________
-// ________________________
-// ________________________
-// ________________________
+function randomTable(numElems, rows=numElems/2) {
+    let elems = "abcdefghijklmnopqrstuvwxyz".split("").slice(0, numElems+1);
+    if (elems.length < numElems)
+        throw "cannot create table numElems is too large: " + numElems;
+    let table = [];
+    let rand = _=> Util.randomSelect(elems)[0];
+    for (let i = 0; i < rows; i++)
+        table.push([rand(), rand(), rand()]);
+    return table;
+}
 
 let M = {
     create({
         gameStage,
         resources,
-        rows=11,
-        cols=11,
-        tileSize,
+        rows=9,
+        cols=9,
+        tileSize=40,
         tileSpace,
         x, y,
-        speed=150,
+        seconds=0.3,
         stretch=.9,
-        alpha,
+        alpha=0.9,
 
         onGameOver=()=>{},
     } = {}) {
@@ -59,7 +53,7 @@ let M = {
         let self = {
             gridArgs: {
                 x, y, rows, cols, tileSize, tileSpace, tileMap,
-                speed, stretch, interactive: true, alpha,
+                seconds, stretch, interactive: true, alpha,
             },
             gameStage,
             resources,
@@ -88,6 +82,11 @@ let M = {
         let {resources} = self;
         let CharSprites = require("src/client/algebra/RpgSprites").new();
         let sprites = CharSprites.getConstructors(resources);
+
+        let algebra = Algebra.new({
+            table: randomTable(9, 7),
+        });
+
         let galge = GraphicAlgebra.new({
             algebra,
             textures: Object.assign(
@@ -96,7 +95,18 @@ let M = {
                 }
             )
         });
+        let tile = PIXI.Texture.from(GridTiles.get("ground_03.png"));
+        let table = self.table = GraphicTable.new(galge, {
+            alpha: 0.8,
+            tileSize: 25,
+            tileSpace: 1.0,
+            stretch: 0.7,
+            tileMap: function(x, y, id) {
+                return tile;
+            },
+        });
         self.algebra = galge;
+        self.table = table;
     },
 
 
@@ -119,22 +129,26 @@ let M = {
                 console.log(algebra.getElem(head), algebra.getElem(sprite));
                 let sprite_ = algebra.applySprites(head, sprite);
                 if (sprite_) {
-                    Anima.boom(sprite);
+                    let p = grid.spritePos(head);
+                    Anima.fade(sprite, {end: 0});
+                    Anima.move(sprite, {end: head});
+                    Anima.fade(head, {end: 0});
+                    grid.setSprite({sprite: sprite_, x: p.x, y: p.y});
+                    self.gameStage.watch(sprite_, 0.3);
+                    await Anima.fade(sprite_, {start: 0, end: 1});
+                    self.sprites[0] = sprite_;
                 } else {
                     self.sprites.unshift(sprite);
                     poss = self.sprites.map(s => grid.spritePos(s));
                     newpos = Vec.new(poss[0]).add(dir);
-                    self.gameStage.watch(sprite);
+                    await self.gameStage.watch(sprite, 0.3);
                 }
             }
 
 
             if (grid.gameArray.outbounds(newpos)) {
-                //return Promise.resolve();
                 let sprite = grid.spriteAt(poss[0]);
                 newpos = grid.wrapPos(newpos);
-                //grid.removeSprite(sprite);
-                //grid.setSprite({sprite, x: newpos.x, y: newpos.y});
             }
             poss.unshift(newpos);
             poss.pop();
@@ -195,21 +209,32 @@ let M = {
         M.randomInsert(self, 10);
         M.createPlayMenu(self);
 
-        let ticker = PIXI.ticker.shared;
-        let {left, right, up, down} = self.keys;
-        let fn = () => {
-            if (right.isDown)
-                self.dir = {x:  1, y:  0};
-            if (left.isDown)
-                self.dir = {x: -1, y:  0};
-            if (up.isDown)
-                self.dir = {x:  0, y: -1};
-            if (down.isDown)
-                self.dir = {x:  0, y:  1};
+        self.gameStage.addUI(self.table.grid);
+        Layout.belowOf(
+            {inside: true, align: "right"}, 
+            self.gameStage.ui, self.table.grid
+        );
 
-            M.move(self);
+        let {left, right, up, down} = self.keys;
+        let fn = async () => {
+            let dir;
+            if (right.isDown)
+                dir = {x:  1, y:  0};
+            if (left.isDown)
+                dir = {x: -1, y:  0};
+            if (up.isDown)
+                dir = {x:  0, y: -1};
+            if (down.isDown)
+                dir = {x:  0, y:  1};
+
+            if (dir && !Vec.new(dir).neg().equals(self.dir)) {
+                self.dir = dir;
+            }
+            await M.move(self);
         }
-        ticker.add(fn);
+        self.gameLoop = Util.loop(fn);
+        self.gameStage.changeBackground(Backgrounds.randomName());
+        //ticker.add(fn);
     },
 
     createGrid(self) {
@@ -229,8 +254,15 @@ let M = {
     stop(self) {
         M.unlistenKeys(self);
         if (self.grid)
-            self.grid.destroy(false);
+            self.grid.destroy({children: true});
         self.actions.stop();
+        if (self.gameLoop) {
+            self.gameLoop.stop();
+            self.gameLoop = null;
+        }
+        if (self.table) {
+            self.table.grid.destroy({children: true});
+        }
     },
 
     createMainMenu(self) {
@@ -283,9 +315,11 @@ let M = {
     },
 
     resume(self) {
+        if (self.gameLoop) self.gameLoop.start();
         M.listenKeys(self);
     },
     pause(self) {
+        if (self.gameLoop) self.gameLoop.stop();
         M.unlistenKeys(self);
     },
 

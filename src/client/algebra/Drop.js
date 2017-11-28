@@ -26,6 +26,8 @@ let images = {
     background5: Backgrounds.dir+"/bg5.jpg",
 }
 
+// TODO: add vertical clearing
+
 let startSpeed = 2000;
 let speedDiff = 100;
 let nextLevelCount = 10;
@@ -127,7 +129,7 @@ let M = {
 
 
 
-        let tileSize = 25;
+        let tileSize = 21;
         let tileMap = _ => PIXI.Texture.from(images.tile);
         let gridArgs = {
             speed: 300,
