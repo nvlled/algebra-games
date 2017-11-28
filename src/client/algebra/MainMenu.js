@@ -202,11 +202,11 @@ let M = {
             newBtn("Ten24"),
             newBtn("Sudoku"),
             newBtn("PairSwap"),
-            newBtn("Checkers"),
             newBtn("Memrise"),
             newBtn("Snake"),
             newBtn("Slider"),
             newBtn("LightsOut"),
+            newBtn("Sokoban"),
         ];
 
         mainMenu = Layout.table(

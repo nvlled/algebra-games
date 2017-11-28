@@ -53,8 +53,12 @@ async function setup() {
     Backgrounds.loadTextures(PIXI.loader);
     GridTiles.loadTextures(PIXI.loader);
 
-    renderer = PIXI.autoDetectRenderer(640, 480);
-    renderer.options.antialias = true;
+    renderer = PIXI.autoDetectRenderer({
+        width: 640,
+        height: 480,
+        forceFXAA: true,
+    });
+
     renderer.view.onmousedown = e => e.preventDefault();
     document.body.querySelector("div.game").appendChild(renderer.view);
     window.addEventListener("keydown", e => {
@@ -76,6 +80,13 @@ async function setup() {
         .add("static/images/cake.png")
         .add("static/images/konett.png")
         .add("static/images/menu.png")
+
+        .add("static/images/racoon.jpg")
+        .add("static/images/armadillo.jpg")
+        .add("static/images/hare.jpg")
+
+        .add("static/images/sharm/tiles.png")
+        .add("static/images/sharm/characters.png")
 
         .load(main);
 }
