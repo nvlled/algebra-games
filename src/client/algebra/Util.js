@@ -26,14 +26,8 @@ Util.extend = function(obj, ...sources) {
     });
     return obj;
 }
-//Util.extend = Object.assign;
 
 Util.wrap = function(obj, ext) {
-    //let m = Util.extend({}, ext);
-    //let p = obj.__proto__;
-    //Object.setPrototypeOf(obj, m);
-    //Object.setPrototypeOf(m, p);
-    //return obj;
     let m = Util.extend({}, ext);
     Object.setPrototypeOf(m, obj);
     return m;
@@ -59,6 +53,30 @@ Util.contextualize = function(fn) {
     }
 }
 
+Util.loop = function(fn) {
+    let rf;
+    let running = false;
+    let loop = async () => {
+        await fn();
+        if (running)
+            rf = requestAnimationFrame(loop);
+    }
+    let obj =  {
+        async start() {
+            if (running)
+                return;
+            running = true;
+            requestAnimationFrame(loop);
+        },
+        stop() {
+            running = false;
+            cancelAnimationFrame(rf);
+        }
+    }
+    obj.start();
+    return obj;
+}
+
 Util.doWhile = function(cond, body) {
     return new Promise(resolve => {
         let ticker = new PIXI.ticker.Ticker();
@@ -72,28 +90,11 @@ Util.doWhile = function(cond, body) {
                 resolve();
             }
             time += elapsed;
-            //console.log(">", elapsed, time);
         }
         ticker.add(loop);
         ticker.start();
     });
 }
-
-//function injectProto(pu, newProto) {
-//    let proto = pu.__proto__;
-//    pu.__proto__ = extend({}, newProto);
-//    pu.__proto__.__proto__ = proto; // puprrroto
-//    return pu;
-//}
-
-//function prototypify__(mod) {
-//    let mod_ = {};
-//    Object.keys(mod).forEach(function(k) {
-//        let prop = mod[k];
-//        mod_[k] = contextualize(prop);
-//    });
-//    return mod_;
-//}
 
 Util.markGetterSetter = function(fn) {
     fn.___whatareyoudoingahaha___ = "html";
@@ -376,6 +377,22 @@ Util.runForMillis = function(millis, fn) {
     }
     requestAnimationFrame(loop);
     return promise;
+}
+
+Util.cycle = function(start, end, step=1) {
+    let cur = start;
+    return function() {
+        let x = cur;
+        cur += step;
+        if (step > 0) {
+            if (cur > end)
+                step *= -1;
+        } else if (step < 0) {
+            if (cur < start)
+                step *= -1;
+        }
+        return x;
+    }
 }
 
 Util.pickIndices = function(array, indices) {
