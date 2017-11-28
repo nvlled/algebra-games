@@ -6,6 +6,7 @@ module.exports = {
         index:     ["babel-polyfill", './dist/client/page-scripts/index.js'],
         mapeditor: './dist/client/page-scripts/mapeditor.js',
     },
+    //devtool: "source-map",
     output: {
         filename: '[name].js',
         path: path.resolve(__dirname, 'static/scripts')
@@ -19,7 +20,7 @@ module.exports = {
             use: {
                 loader: 'babel-loader',
                 options: {
-                    presets: ['env']
+                    presets: ['env', 'es2015']
                 }
             }
         }
@@ -28,6 +29,4 @@ module.exports = {
         ],
     },
 };
-
-
 
