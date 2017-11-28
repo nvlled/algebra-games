@@ -78,6 +78,7 @@ let M = {
             align,// left,right,center
             container,
             width=0,
+            inside=false,
         } = args;
         sprite1.parent.addChild(sprite2);
         sprite2.y = sprite1.y+sprite1.height+marginY; 
@@ -86,6 +87,8 @@ let M = {
             sprite2.x += sprite1.width/2 - sprite2.width/2;
         else if (align == "right")
             sprite2.x += sprite1.width - sprite2.width;
+        if (inside)
+            sprite2.y -= sprite2.height;
     },
 
     aboveOf(args, sprite1, sprite2) {
@@ -104,16 +107,20 @@ let M = {
 
     leftOf(args, sprite1, sprite2) {
         let {
-            margin=5,
+            margin=1,
             marginX=margin,
             marginY=margin,
-            center=true,
             container,
             width=0,
+            align="left",
         } = args;
         sprite1.parent.addChild(sprite2);
         sprite2.x = sprite1.x-sprite2.width-marginX; 
         sprite2.y = sprite1.y+marginY;
+        if (align == "center")
+            sprite2.y += sprite1.height/2 - sprite2.height/2;
+        else if (align == "right")
+            sprite2.y += sprite1.height - sprite2.height;
     },
 
     col(args, ...sprites) {
