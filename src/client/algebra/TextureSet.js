@@ -47,13 +47,27 @@ let M = {
 
         if (cols == null && rows != 0)
             cols = textures.length/rows;
-        else
+        else if (cols == null)
             cols = 0;
 
         return {
             textures,
             rows, cols,
         }
+    },
+
+    get(self, i) {
+        return self.textures[i];
+    },
+
+    createSprite(self, i) {
+        let t = self.textures[i];
+        return new PIXI.Sprite(t);
+    },
+
+    createSpriteXY(self, x, y) {
+        let i = y*self.cols + x;
+        return M.createSprite(self, i);
     },
 
     indexTextures(self, indices) {
