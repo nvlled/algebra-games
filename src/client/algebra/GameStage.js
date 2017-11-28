@@ -220,7 +220,7 @@ let M = {
         for (let s of self.world.children) {
             if (s == self.bg)
                 continue;
-            s.destroy();
+            s.destroy({children: true});
         }
     },
 
@@ -292,8 +292,27 @@ let M = {
     lookAt(self, sprite) {
     },
 
-    watch(self, sprite) {
+    async watch(self, sprite, seconds) {
+        if (seconds == null) {
+            self.watchSprite = sprite;
+            return;
+        }
+
+        let {view, world} = self;
+        let {x: sx, y: sy} = self.world.scale;
+        let {width, height} = self.view;
+        let sb = sprite.getBounds();
+
+        let start = {x: self.world.x, y: self.world.y};
+        let end = {
+            x: -(sb.x-world.x) + width/2 - sb.width/2,
+            y: -(sb.y-world.y) + height/2 - sb.height/2,
+        }
         self.watchSprite = sprite;
+        self.moving = true;
+        await Anima.move(world, {start, end, seconds});
+        self.watchSprite = sprite;
+        self.moving = false;
     },
 
     add(self, sprite) {
@@ -333,14 +352,22 @@ let M = {
     },
 
     update(self) {
+        if (self.moving)
+            return;
         let {view, watchSprite: sprite, world} = self;
-        if (sprite) {
+        if (sprite && !sprite._destroyed) {
             let {x: sx, y: sy} = self.world.scale;
             let {width, height} = self.view;
             let sb = sprite.getBounds();
+
+            let oldPos = {x: self.world.x, y: self.world.y};
             
             self.world.x = -(sb.x-world.x) + width/2 - sb.width/2;
             self.world.y = -(sb.y-world.y) + height/2 - sb.height/2;
+        } else {
+            self.watchSprite = null;
+            self.world.x = 0;
+            self.world.y = 0;
         }
     },
 
