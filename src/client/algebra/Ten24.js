@@ -13,6 +13,7 @@ let Algebra = require("src/client/algebra/Algebra");
 let Layout = require("src/client/algebra/Layout");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let RotatedArray = require("src/client/algebra/RotatedArray");
+let SlideContent = require("src/client/algebra/SlideContent");
 let PIXI = require("src/client/pixi");
 let GraphicTable = require("src/client/algebra/GraphicTable");
 
@@ -332,7 +333,7 @@ let M = {
 
     createMainMenu(self) {
         let {gameStage} = self;
-        gameStage.createMenu({
+        let menu = gameStage.createMenu({
             title: "Ten24",
             showBg: false,
             textStyle: {
@@ -344,7 +345,28 @@ let M = {
                 gameStage.showMenuBar();
                 M.newGame(self);
             },
-            "Help/Instructions": ()=>{
+            "Help": ()=>{
+                Anima.slideOut(menu, {fade: 1});
+                SlideContent.dialog({
+                    title: "Help",
+                    content: [
+                        "Controls:",
+                        "* Use the arrow keys to move the grid.",
+                        "* You can also perform the same operations by touch-dragging",
+                        "",
+                        "Gameplay:",
+                        " The gameplay is similar to 2048. Use the table as a reference on what combinations to take.",
+                    ].join("\n"),
+                    buttons: {
+                        ["close"]: async dialog => {
+                            Layout.center({}, menu);
+                            Anima.slideIn(menu, {fade: 1});
+                            await Anima.slideOut(dialog, {fade: 1});
+                            dialog.destroy(true);
+                        },
+                    },
+                    parent: gameStage.ui,
+                });
             },
             "Exit": ()=>{
                 gameStage.exitModule();

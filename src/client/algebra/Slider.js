@@ -13,6 +13,7 @@ let Algebra = require("src/client/algebra/Algebra");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let Layout = require("src/client/algebra/Layout");
 let SetUtil = require("src/client/algebra/SetUtil");
+let SlideContent = require("src/client/algebra/SlideContent");
 let TextureSet = require("src/client/algebra/TextureSet");
 let PixiUtil = require("src/client/algebra/PixiUtil");
 
@@ -329,11 +330,13 @@ let M = {
         if (self.grid)
             self.grid.destroy(false);
         self.actions.stop();
+        if (self.shuffleBtn)
+            self.shuffleBtn.destroy();
     },
 
     createMainMenu(self) {
         let {gameStage} = self;
-        gameStage.createMenu({
+        let menu = gameStage.createMenu({
             title: "Slider",
             showBg: false,
             textStyle: {
@@ -345,7 +348,27 @@ let M = {
                 gameStage.showMenuBar();
                 M.newGame(self);
             },
-            "Help/Instructions": ()=>{
+            "Help": ()=>{
+                Anima.slideOut(menu, {fade: 1});
+                SlideContent.dialog({
+                    title: "Help",
+                    content: [
+                        "Controls:",
+                        " * Click on the tiles near the empty one to move.",
+                        "",
+                        "Gameplay:",
+                        " Arrange the image by moving the empty tile."
+                    ].join("\n"),
+                    buttons: {
+                        ["close"]: async dialog => {
+                            Layout.center({}, menu);
+                            Anima.slideIn(menu, {fade: 1});
+                            await Anima.slideOut(dialog, {fade: 1});
+                            dialog.destroy(true);
+                        },
+                    },
+                    parent: gameStage.ui,
+                });
             },
             "Exit": ()=>{
                 gameStage.exitModule();

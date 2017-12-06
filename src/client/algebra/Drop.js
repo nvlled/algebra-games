@@ -13,6 +13,7 @@ let Algebra = require("src/client/algebra/Algebra");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let GraphicTable = require("src/client/algebra/GraphicTable");
 let EasingFn = require("src/client/algebra/EasingFn");
+let SlideContent = require("src/client/algebra/SlideContent");
 
 let Backgrounds = require("src/client/algebra/Backgrounds");
 let GridTiles = require("src/client/algebra/GridTiles");
@@ -399,7 +400,7 @@ let M = {
 
     async start(self) {
         let {gameStage} = self;
-        gameStage.createMenu({
+        let menu = gameStage.createMenu({
             title: "Drop",
             showBg: false,
             textStyle: {
@@ -411,7 +412,36 @@ let M = {
                 gameStage.showMenuBar();
                 M.newGame(self);
             },
-            "Help/Instructions": ()=>{
+            "Help": ()=>{
+                Anima.slideOut(menu, {fade: 1});
+                SlideContent.dialog({
+                    title: "Help",
+                    content: [
+                        "Controls:",
+                        "* Use the left and right arrows keys to move the block vertically",
+                        "* Use the up arrow to rotate",
+                        "* Use the down arrow to drop the block",
+                        "* You can also perform the same operations by touch-dragging",
+                        "",
+                        "Gameplay:",
+                        " Use the table as a reference for clearing the blocks.",
+                    ].join("\n"),
+                    buttons: {
+                        ["close"]: async dialog => {
+                            Layout.center({}, menu);
+                            Anima.slideIn(menu, {fade: 1});
+                            await Anima.slideOut(dialog, {fade: 1});
+                            dialog.destroy(true);
+                        },
+                    },
+                    parent: gameStage.ui,
+                    textStyle: {
+                        fontSize: 25,
+                    },
+                    buttonStyle: {
+                        fontSize: 15,
+                    },
+                });
             },
             "Exit": ()=>{
                 gameStage.exitModule();

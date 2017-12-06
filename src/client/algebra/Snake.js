@@ -12,6 +12,7 @@ let Grid = require("src/client/algebra/Grid");
 let Block = require("src/client/algebra/Block");
 let Keyboard = require("src/client/algebra/Keyboard");
 let EasingFn = require("src/client/algebra/EasingFn");
+let SlideContent = require("src/client/algebra/SlideContent");
 let Button = require("src/client/algebra/Button");
 let Layout = require("src/client/algebra/Layout");
 let PIXI = require("src/client/pixi");
@@ -267,7 +268,7 @@ let M = {
 
     createMainMenu(self) {
         let {gameStage} = self;
-        gameStage.createMenu({
+        let menu = gameStage.createMenu({
             title: "Snake",
             showBg: false,
             textStyle: {
@@ -280,6 +281,26 @@ let M = {
                 M.newGame(self);
             },
             "Help/Instructions": ()=>{
+                Anima.slideOut(menu, {fade: 1});
+                SlideContent.dialog({
+                    title: "Help",
+                    content: [
+                        "Controls:",
+                        " Use the arrow keys to control the snake.",
+                        "",
+                        "Gameplay:",
+                        " ... Just move around and eat stuff without point.",
+                    ].join("\n"),
+                    buttons: {
+                        ["close"]: async dialog => {
+                            Layout.center({}, menu);
+                            Anima.slideIn(menu, {fade: 1});
+                            await Anima.slideOut(dialog, {fade: 1});
+                            dialog.destroy(true);
+                        },
+                    },
+                    parent: gameStage.ui,
+                });
             },
             "Exit": ()=>{
                 gameStage.exitModule();

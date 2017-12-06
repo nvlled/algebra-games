@@ -12,6 +12,7 @@ let PIXI = require("src/client/pixi");
 let Algebra = require("src/client/algebra/Algebra");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let GraphicTable = require("src/client/algebra/GraphicTable");
+let SlideContent = require("src/client/algebra/SlideContent");
 let Layout = require("src/client/algebra/Layout");
 let SetUtil = require("src/client/algebra/SetUtil");
 let PixiUtil = require("src/client/algebra/PixiUtil");
@@ -356,19 +357,39 @@ let M = {
 
     createMainMenu(self) {
         let {gameStage} = self;
-        gameStage.createMenu({
+        let menu = gameStage.createMenu({
             title: "Pairswap",
             showBg: false,
             textStyle: {
                 fill: 0xaaaa22,
-                fontSize: 110,
+                fontSize: 100,
             },
         }, {
             "New Game": ()=>{
                 gameStage.showMenuBar();
                 M.newGame(self);
             },
-            "Help/Instructions": ()=>{
+            "Help": ()=>{
+                Anima.slideOut(menu, {fade: 1});
+                SlideContent.dialog({
+                    title: "Help",
+                    content: [
+                        "Controls:",
+                        " * Drag an item to the adjacent blocks.",
+                        "",
+                        "Gameplay:",
+                        " The game is similar to bejeweled where an item is swapped with the adjacent blocks to form a matching tile. The variation is that instead of matching similar blocks, a table is used as a reference."
+                    ].join("\n"),
+                    buttons: {
+                        ["close"]: async dialog => {
+                            Layout.center({}, menu);
+                            Anima.slideIn(menu, {fade: 1});
+                            await Anima.slideOut(dialog, {fade: 1});
+                            dialog.destroy(true);
+                        },
+                    },
+                    parent: gameStage.ui,
+                });
             },
             "Exit": ()=>{
                 gameStage.exitModule();

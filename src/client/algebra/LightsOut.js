@@ -13,6 +13,7 @@ let Algebra = require("src/client/algebra/Algebra");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let Layout = require("src/client/algebra/Layout");
 let Button = require("src/client/algebra/Button");
+let SlideContent = require("src/client/algebra/SlideContent");
 let SetUtil = require("src/client/algebra/SetUtil");
 let PixiUtil = require("src/client/algebra/PixiUtil");
 
@@ -404,7 +405,7 @@ let M = {
 
     createMainMenu(self) {
         let {gameStage} = self;
-        gameStage.createMenu({
+        let menu = gameStage.createMenu({
             title: "Lights Out",
             showBg: false,
             textStyle: {
@@ -416,7 +417,27 @@ let M = {
                 gameStage.showMenuBar();
                 M.createLevelMenu(self);
             },
-            "Help/Instructions": ()=>{
+            "Help": ()=>{
+                Anima.slideOut(menu, {fade: 1});
+                SlideContent.dialog({
+                    title: "Help",
+                    content: [
+                        "Controls:",
+                        " * Click on a tile to turn on/off all the surrounding tiles.",
+                        "",
+                        "Gameplay:",
+                        " Turn off all the lights in the grid."
+                    ].join("\n"),
+                    buttons: {
+                        ["close"]: async dialog => {
+                            Layout.center({}, menu);
+                            Anima.slideIn(menu, {fade: 1});
+                            await Anima.slideOut(dialog, {fade: 1});
+                            dialog.destroy(true);
+                        },
+                    },
+                    parent: gameStage.ui,
+                });
             },
             "Exit": ()=>{
                 gameStage.exitModule();

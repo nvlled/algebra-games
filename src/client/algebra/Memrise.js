@@ -10,6 +10,7 @@ let Keyboard = require("src/client/algebra/Keyboard");
 let EasingFn = require("src/client/algebra/EasingFn");
 let PIXI = require("src/client/pixi");
 let Algebra = require("src/client/algebra/Algebra");
+let SlideContent = require("src/client/algebra/SlideContent");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let GraphicTable = require("src/client/algebra/GraphicTable");
 let Layout = require("src/client/algebra/Layout");
@@ -290,7 +291,7 @@ let M = {
 
     createMainMenu(self) {
         let {gameStage} = self;
-        gameStage.createMenu({
+        let menu = gameStage.createMenu({
             title: "Memrise",
             showBg: false,
             textStyle: {
@@ -300,9 +301,29 @@ let M = {
         }, {
             "New Game": ()=>{
                 gameStage.showMenuBar();
-                M.newGame(self);
+                M.newGame(self, Util.randomInt(3, 4));
             },
-            "Help/Instructions": ()=>{
+            "Help": ()=>{
+                Anima.slideOut(menu, {fade: 1});
+                SlideContent.dialog({
+                    title: "Help",
+                    content: [
+                        "Controls:",
+                        " * Click or touch the tiles to reveal them",
+                        "",
+                        "Gameplay:",
+                        " Find all the matching pairs in the grid, where the match is defined in the table."
+                    ].join("\n"),
+                    buttons: {
+                        ["close"]: async dialog => {
+                            Layout.center({}, menu);
+                            Anima.slideIn(menu, {fade: 1});
+                            await Anima.slideOut(dialog, {fade: 1});
+                            dialog.destroy(true);
+                        },
+                    },
+                    parent: gameStage.ui,
+                });
             },
             "Exit": ()=>{
                 gameStage.exitModule();

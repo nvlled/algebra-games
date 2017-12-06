@@ -13,6 +13,7 @@ let Layout = require("src/client/algebra/Layout");
 let Block = require("src/client/algebra/Block");
 let Keyboard = require("src/client/algebra/Keyboard");
 let Keymap = require("src/client/algebra/Keymap");
+let SlideContent = require("src/client/algebra/SlideContent");
 let PixiUtil = require("src/client/algebra/PixiUtil");
 let PIXI = require("src/client/pixi");
 
@@ -666,7 +667,7 @@ let M = {
 
     createMainMenu(self) {
         let {gameStage} = self;
-        gameStage.createMenu({
+        let menu = gameStage.createMenu({
             title: "Sudoku",
             showBg: false,
             textStyle: {
@@ -677,7 +678,23 @@ let M = {
             "New Game": ()=>{
                 M.createSubMenu(self);
             },
-            "Help/Instructions": ()=>{
+            "Help": ()=>{
+                Anima.slideOut(menu, {fade: 1});
+                SlideContent.dialog({
+                    title: "Help",
+                    content: [
+                        "Drag the items on the left into the grid. Each item must only occur once in a row, column or block.",
+                    ].join("\n"),
+                    buttons: {
+                        ["close"]: async dialog => {
+                            Layout.center({}, menu);
+                            Anima.slideIn(menu, {fade: 1});
+                            await Anima.slideOut(dialog, {fade: 1});
+                            dialog.destroy(true);
+                        },
+                    },
+                    parent: gameStage.ui,
+                });
             },
             "Exit": ()=>{
                 gameStage.exitModule();
