@@ -221,13 +221,13 @@ Util.constructor = function(module) {
     }
 }
 
-Util.rightpad = function(str, n, ch) {
+Util.rightpad = function(str, n, ch=" ") {
     if (str.length > n)
         return str;
     return str + ch.repeat(n-str.length);
 }
 
-Util.leftpad = function(str, n, ch) {
+Util.leftpad = function(str, n, ch=" ") {
     if (str.length > n)
         return str;
     return ch.repeat(n-str.length) + str;
@@ -403,6 +403,14 @@ Util.sleep = function(millis) {
     return new Promise(resolve => {
         setTimeout(resolve, millis);
     });
+}
+
+Util.randomColor = function() {
+    let r = Util.randomInt(100, 200);
+    let g = Util.randomInt(150, 200);
+    let b = Util.randomInt(120, 222);
+    let exp =  (b, e) => Math.pow(b, e);
+    return r*exp(256, 2) + g*exp(256, 1) + b*exp(256, 0);
 }
 
 Util.nulla = function(arr) {
