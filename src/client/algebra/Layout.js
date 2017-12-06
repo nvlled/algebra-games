@@ -1,5 +1,6 @@
 let PIXI = require("src/client/pixi");
 let Anima = require("src/client/algebra/Anima");
+let PixiUtil = require("src/client/algebra/PixiUtil");
 let EasingFn = require("src/client/algebra/EasingFn");
 
 // row({}, ...[x,y,z])
@@ -10,24 +11,13 @@ let M = {
     },
 
     centerOf(opts, sprite1, sprite2) {
-        //let opts, sprite1, sprite2 = null;
-        //if (args.length >= 3) {
-        //    [opts,sprite1, sprite2] = args;
-        //} else if (args.length == 2) {
-        //    [sprite1, sprite2] = args;
-        //    opts = {};
-        //} else {
-        //    [sprite2] = args;
-        //    sprite1 = sprite2.parent;
-        //    opts = {};
-        //}
-
         let {
             x=null, y=null,
             margin=0,
             marginX=margin,
             marginY=margin,
-            center=true,
+            centerX=true,
+            centerY=true,
             container,
             width,
             height,
@@ -43,7 +33,6 @@ let M = {
         if (height == null)
             height = sprite1.height;
 
-        //x = (width-sprite2.width)/2;
         if (x == null) {
             x = (width-sprite2.width)/2;
             if (sprite2.parent != sprite1)
@@ -60,12 +49,18 @@ let M = {
         }
 
         if (animate) {
-            return Anima.move(sprite2, 
+            if (!centerX)
+                x = null;
+            if (!centerY)
+                y = null;
+            return Anima.move(sprite2,
                 Object.assign({end: {x, y}}, anima));
         }
 
-        sprite2.x = x+marginX;
-        sprite2.y = y+marginY;
+        if (centerX)
+            sprite2.x = x+marginX;
+        if (centerY)
+            sprite2.y = y+marginY;
         return Promise.resolve();
     },
 
@@ -81,7 +76,7 @@ let M = {
             inside=false,
         } = args;
         sprite1.parent.addChild(sprite2);
-        sprite2.y = sprite1.y+sprite1.height+marginY; 
+        sprite2.y = sprite1.y+sprite1.height+marginY;
         sprite2.x = sprite1.x;
         if (center || align == "center")
             sprite2.x += sprite1.width/2 - sprite2.width/2;
@@ -101,7 +96,7 @@ let M = {
             width=0,
         } = args;
         sprite1.parent.addChild(sprite2);
-        sprite2.y = sprite1.y-sprite2.height-marginY; 
+        sprite2.y = sprite1.y-sprite2.height-marginY;
         sprite2.x = sprite1.x;
     },
 
@@ -115,7 +110,25 @@ let M = {
             align="left",
         } = args;
         sprite1.parent.addChild(sprite2);
-        sprite2.x = sprite1.x-sprite2.width-marginX; 
+        sprite2.x = sprite1.x-sprite2.width-marginX;
+        sprite2.y = sprite1.y+marginY;
+        if (align == "center")
+            sprite2.y += sprite1.height/2 - sprite2.height/2;
+        else if (align == "right")
+            sprite2.y += sprite1.height - sprite2.height;
+    },
+
+    rightOf(args, sprite1, sprite2) {
+        let {
+            margin=1,
+            marginX=margin,
+            marginY=margin,
+            container,
+            width=0,
+            align="left",
+        } = args;
+        sprite1.parent.addChild(sprite2);
+        sprite2.x = sprite1.x+sprite1.width+marginX;
         sprite2.y = sprite1.y+marginY;
         if (align == "center")
             sprite2.y += sprite1.height/2 - sprite2.height/2;
@@ -129,85 +142,137 @@ let M = {
             margin=5,
             marginX=margin,
             marginY=margin,
+            padding=0,
             align="left",
             center=true,
             stretch=true,
             container,
             height,
             width,
+            color=null,
+            alpha=0.5,
         } = args;
-        if (!container)
-            container = new PIXI.Container();
+        y = y+marginY/2;
 
-        y = y+marginY;
         let maxw = width;
+        let maxh = height;
 
         if (maxw == null) {
             maxw = width = 0;
-            for (let s of sprites) {
-                maxw = Math.max(maxw, s.width);
-            }
+        }
+        if (maxh == null) {
+            maxh = height = 0;
+        }
+        for (let s of sprites) {
+            maxw = Math.max(maxw, s.width);
+            maxh = Math.max(maxh, s.height);
         }
 
-        let cwidth = container.width;
+        let totalh = 0;
+        let totalw = 0;
+        for (let s of sprites) {
+            totalh += s.height+marginY;
+        }
+        totalw += maxw + marginX;
+
+        if (!container) {
+            container = PixiUtil.roundedRect({
+                color,
+                alpha,
+                width: totalw+padding,
+                height: totalh+padding,
+            });
+        }
 
         for (let s of sprites) {
             container.addChild(s);
-            s.x = x+marginX;
-            s.y = y;
+            s.x = x+marginX/2 + padding/2;
+            s.y = y + padding/2;
             if (stretch) {
                 s.width = maxw;
-                if (height != null)
+                if (height != null && height != 0)
+                s.height = maxh;
+            } else {
+                if (width > 0)
+                    s.width = width;
+                if (height > 0)
                     s.height = height;
             }
-            if (center) 
+            if (center)
                 s.x += maxw/2 - s.width/2;
             if (align == "right")
-                s.x = cwidth - maxw;
+                s.x = totalw - maxw;
 
             y += s.height+marginY;
         }
+
         return container;
     },
 
     row(args, ...sprites) {
         let {
+            x=0, y=0,
             margin=5,
             marginX=margin,
             marginY=margin,
+            align="left",
             center=true,
-            stretch=true,
+            stretch=false,
             container,
             height,
             width,
+            color=null,
+            alpha=0.5,
         } = args;
-        if (!container)
-            container = new PIXI.Container();
-        let x = marginX;
+        x = x+marginX/2;
+
+        let maxw = width;
         let maxh = height;
 
+        if (maxw == null) {
+            maxw = width = 0;
+        }
         if (maxh == null) {
             maxh = height = 0;
-            for (let s of sprites) {
-                maxh = Math.max(maxh, s.height);
-            }
+        }
+        for (let s of sprites) {
+            maxw = Math.max(maxw, s.width);
+            maxh = Math.max(maxh, s.height);
+        }
+
+        let totalh = 0;
+        let totalw = 0;
+        for (let s of sprites) {
+            totalw += s.width+marginX;
+        }
+        totalh = maxh + marginY;
+
+        if (!container) {
+            container = PixiUtil.roundedRect({
+                color,
+                alpha,
+                width: totalw,
+                height: totalh,
+            });
         }
 
         for (let s of sprites) {
             container.addChild(s);
+            s.y = y+marginY/2;
             s.x = x;
-            s.y = marginY;
             if (stretch) {
                 s.height = maxh;
-                if (width != null)
-                    s.width = width;
+                if (width != null && width != 0)
+                    s.width = totalw;
             }
-            if (center) {
+            if (center)
                 s.y += maxh/2 - s.height/2;
-            }
+            if (align == "right")
+                s.y = totalh - maxh;
 
             x += s.width+marginX;
         }
+
         return container;
     },
 
@@ -224,6 +289,8 @@ let M = {
             rows=sprites.length/cols,
             width=0,
             height=0,
+            color=null,
+            alpha=0.5,
         } = args;
 
         let size = sprites.reduce((msize, s) => {
@@ -239,22 +306,32 @@ let M = {
             size.h = n;
         }
 
-        if (!container)
-            container = new PIXI.Container();
-
         let len = sprites.length;
+        let totalSize = [0, 0];
         for (let n = 0; n < len; n++) {
             let sprite = sprites[n];
             let i = Math.floor(n/cols);
             let j = Math.floor(n%cols);
-            let x = j*(size.w+marginX);
-            let y = i*(size.h+marginY);
+            let x = marginX/2 + j*(size.w+marginX);
+            let y = marginY/2 + i*(size.h+marginY);
             sprite.x = x;
             sprite.y = y;
             sprite.width = size.w;
             sprite.height = size.h;
-            container.addChild(sprite);
+            totalSize[0] += size.w+marginX;
+            totalSize[1] += size.h+marginY;
         }
+
+        if (!container) {
+            container = PixiUtil.roundedRect({
+                color,
+                alpha,
+                width: (size.w+marginX)*cols + marginX,
+                height: (size.h+marginY)*Math.ceil(rows) + marginY,
+            });
+        }
+        for (let s of sprites)
+            container.addChild(s);
 
         return container;
     },
