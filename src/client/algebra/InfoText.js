@@ -2,7 +2,7 @@ let PIXI = require("src/client/pixi");
 let Util = require("src/client/algebra/Util");
 let Layout = require("src/client/algebra/Layout");
 
-M = {
+let M = {
     create({
         ref,
         font,

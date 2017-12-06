@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "./build.sh",
     "dev": "tsc --watch & nodemon -w dist/server dist/server/index.js",
     "weebopack": "webpack -w --watch-aggregate-timeout 350",
     "test": "tsc && mocha dist/**/*.spec.js",
