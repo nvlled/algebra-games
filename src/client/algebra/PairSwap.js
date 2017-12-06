@@ -79,13 +79,6 @@ let M = {
             textures: Object.assign(
                 {},
                 Util.joinKeyval(algebra.elems, sprites),
-                //{
-                //    a: sprites[2],
-                //    b: sprites[1],
-                //    c: sprites[0],
-                //    equals: resources["equals"].texture,
-                //    [algebra.identity]:  resources["blob"].texture,
-                //}
             )
         });
 

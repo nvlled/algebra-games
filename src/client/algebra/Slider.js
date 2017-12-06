@@ -12,6 +12,7 @@ let PIXI = require("src/client/pixi");
 let Algebra = require("src/client/algebra/Algebra");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let Layout = require("src/client/algebra/Layout");
+let Button = require("src/client/algebra/Button");
 let SetUtil = require("src/client/algebra/SetUtil");
 let SlideContent = require("src/client/algebra/SlideContent");
 let TextureSet = require("src/client/algebra/TextureSet");
@@ -27,6 +28,8 @@ let images = {
 }
 
 let BLANK = Symbol("blank");
+let LAST = Symbol();
+let IDX = Symbol();
 
 let algebra = Algebra.new({
     identity: 'e',
@@ -43,8 +46,8 @@ let M = {
     create({
         gameStage,
         resources,
-        rows=4,
-        cols=4,
+        rows=3,
+        cols=3,
         tileSize=100,
         tileSpace=0,
         x, y,
@@ -135,6 +138,10 @@ let M = {
                 grid.move({src: pos_, dest: pos, force: true, apply: true});
                 await grid.move({src: pos, dest: pos_, force: true, apply: true});
             }
+            if (M.isComplete(self)) {
+                console.log("done");
+                M.createWinGame(self);
+            }
         }
 
         self.grid.onTileDragging = (pos, pos_, dir) => {
@@ -179,10 +186,34 @@ let M = {
             grid.move({src: pos_, dest: pos, force: true, apply: true});
             await grid.move({src: pos, dest: pos_, force: true, apply: true});
 
-            //grid.move({src: pos_, dest: pos, force: true, apply: true});
-            //await grid.move({src: pos, dest: pos_, force: true, apply: true});
-
+            if (M.isComplete(self)) {
+                console.log("done");
+                M.createWinGame(self);
+            }
         }
+    },
+
+    createWinGame(self) {
+        let {gameStage} = self;
+        gameStage.createMenu({
+            title: "Puzzle complete",
+            showBg: false,
+            textStyle: {
+                fill: 0x000088,
+                fontSize: 50,
+            },
+            onShow: ()=> {
+                M.pause(self);
+            },
+            onHide: ()=> {
+                M.resume(self);
+            },
+        }, {
+            "back to main": ()=>{
+                M.stop(self);
+                M.start(self);
+            },
+        });
     },
     
     fillEmptyFiles(self) {
@@ -290,6 +321,17 @@ let M = {
         //await Util.sleep(500);
         await M.shuffle(self);
         await M.selectBlankTile(self);
+
+        let btn = Button.new({
+            text: "shuffle",
+            pointerup: async () => {
+                btn.visible = false;
+                await M.shuffle(self);
+                btn.visible = true;
+            }
+        });
+        self.shuffleBtn = btn;
+        Layout.belowOf({}, self.grid, btn);
 
         M.handleInput(self);
         self.actions.start();
@@ -461,25 +503,39 @@ let M = {
             image,
         });
         let sprites = txtr.textures.map(t=>new PIXI.Sprite(t));
+        let sprite;
         for (let y = 0; y < rows; y++) {
             for (let x = 0; x < cols; x++) {
                 let i = y*cols + x;
-                let sprite = sprites[i];
+                sprite = sprites[i];
                 grid.setSprite({sprite, x, y});
                 grid.tileAt({x, y}).alpha = 0.1;
+                sprite[IDX] = i;
             }
         }
+        self[LAST] = sprite;
 
+    },
+
+    isComplete(self) {
+        for (let i = 0; i < self.grid.getDataSize(); i++) {
+            let s = self.grid.spriteOn(i);
+            console.log(s[IDX], i);
+            if (s[IDX] != i)
+                return false;
+        }
+        return true;
     },
 
     selectBlankTile(self) {
         let {algebra, grid} = self;
         let {rows, cols} = grid;
-        let i = Util.randomIndex(grid.tiles);
-        let {x, y} = grid.toXY(i);
+        //let i = Util.randomIndex(grid.tiles);
+        let {x, y} = grid.spritePos(self[LAST]);
         let blankTile = PIXI.Sprite.fromImage(images.tile);
         blankTile.tint = 0x000000;
         blankTile[BLANK] = "blank";
+        blankTile[IDX] = self[LAST][IDX];
         self.grid.removeSprite({x, y}, true);
         self.grid.setSprite({sprite: blankTile, x, y, stretch: 1});
         return Anima.fade(blankTile, {end: 0, seconds: 0.5});
