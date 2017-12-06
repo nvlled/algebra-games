@@ -1,4 +1,5 @@
 #!/bin/bash
+tsc
 webpack --config webpack-babel.config.js
 
 destDir=build/games
