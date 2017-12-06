@@ -12,7 +12,7 @@ let M = {
     },
 
     color(sprite, {
-        start, end, 
+        start, end,
         seconds,
         speed,
         easeFn,
@@ -39,12 +39,23 @@ let M = {
         ]);
     },
 
-    async fadeLift(sprite, args) {
-        M.moveBy(sprite, {end: {y: -sprite.height/2, seconds: 0.6}});
+    async fadeLift(sprite, args={}) {
+        M.moveBy(sprite, {
+            end: {
+                y:  args.y || -sprite.height/2,
+            },
+            seconds: args.seconds || 0.7
+        });
+        await M.fade(sprite, {end: 0, seconds: args.seconds});
+    },
+
+    async fadeAway(sprite, args) {
+        let n = sprite.height;
+        M.moveBy(sprite, {end: {x: n/2, y: -n, seconds: 1.3}});
         await M.fade(sprite, {end: 0});
     },
 
-    slideIn(sprite, args) {
+    slideIn(sprite, args={}) {
         let cwidth = sprite.width*2;
         let cheight = sprite.width*2;
         if (sprite.parent) {
@@ -52,6 +63,9 @@ let M = {
             cheight = sprite.parent.height;
         };
 
+        args.start = args.start || {
+            y: -1,
+        };
         let start = Util.extractKeys(sprite, "x", "y");
 
         if (args.start.x < 0)
@@ -67,6 +81,8 @@ let M = {
         let end = Util.extractKeys(sprite, "x", "y");
 
         M._setEndStart(sprite, args);
+        if (args.fade)
+            M.fade(sprite, {start: 0, end: 1, seconds: args.seconds});
         return M.move(sprite, Object.assign(
             args,
             {
@@ -76,7 +92,7 @@ let M = {
         ));
     },
 
-    slideOut(sprite, args) {
+    slideOut(sprite, args={}) {
         let cwidth = sprite.width*2;
         let cheight = sprite.width*2;
         if (sprite.parent) {
@@ -84,6 +100,7 @@ let M = {
             cheight = sprite.parent.height;
         };
 
+        args.end = args.end || { x: 1 };
         let end = Util.extractKeys(sprite, "x", "y");
 
         if (args.end.x < 0)
@@ -99,6 +116,8 @@ let M = {
         let start = Util.extractKeys(sprite, "x", "y");
 
         M._setEndStart(sprite, args);
+        if (args.fade)
+            M.fade(sprite, {end: 0, seconds: args.seconds});
         return M.move(sprite, Object.assign(
             args,
             {
@@ -246,16 +265,16 @@ let M = {
             let t = intr.applyScalar(elapsed);
             let x = intr.map(easeFn(t), start, end);
             let y = fn(x);
-            if (!sprite._destroyed) 
+            if (!sprite._destroyed)
                 sprite[prop] = y;
         }).then(_=> {
-            if (!sprite._destroyed) 
+            if (!sprite._destroyed)
                 sprite[prop] = fn(end);
         });
     },
 
     scaLerp(sprite, prop, {
-        start, end, 
+        start, end,
         seconds=0.5,
         speed,
         easeFn=EasingFn.linear,
@@ -281,7 +300,7 @@ let M = {
 
         return Util.doWhile((_, elapsed) => elapsed < millis, (_, elapsed) => {
             let t = intr.applyScalar(elapsed);
-            if (!sprite._destroyed) 
+            if (!sprite._destroyed)
                 sprite[prop] = intr.mapScalar(easeFn(t), start, end);
         }).then(_=> sprite[prop] = end);
     },
