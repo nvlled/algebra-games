@@ -10,6 +10,8 @@ let PIXI = require("src/client/pixi");
 let Actions = require("src/client/algebra/Actions");
 let Anima = require("src/client/algebra/Anima");
 let Algebra = require("src/client/algebra/Algebra");
+let InfoText = require("src/client/algebra/InfoText");
+let FadeText = require("src/client/algebra/FadeText");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let GraphicTable = require("src/client/algebra/GraphicTable");
 let EasingFn = require("src/client/algebra/EasingFn");
@@ -29,9 +31,9 @@ let images = {
 
 // TODO: add vertical clearing
 
-let startSpeed = 2000;
+let startSpeed = 3000;
 let speedDiff = 100;
-let nextLevelCount = 10;
+let nextLevelCount = 35;
 
 // gameplay:
 // the resulting element will be a bonus item instead
@@ -43,20 +45,20 @@ let nextLevelCount = 10;
 // levels
 
 let shapes = {
-    //L: {
-    //    cols: 3,
-    //    data: [
-    //        1, 1, 1,
-    //        1, 0, 0,
-    //    ],
-    //},
-    //J: {
-    //    cols: 3,
-    //    data: [
-    //        1, 1, 1,
-    //        0, 0, 1,
-    //    ],
-    //},
+    L: {
+        cols: 3,
+        data: [
+            1, 1, 1,
+            1, 0, 0,
+        ],
+    },
+    J: {
+        cols: 3,
+        data: [
+            1, 1, 1,
+            0, 0, 1,
+        ],
+    },
     O: {
         square: true,
         cols: 2,
@@ -65,17 +67,17 @@ let shapes = {
             1, 1,
         ],
     },
-    //I: {
-    //    cols: 4,
-    //    data: [ 1, 1, 1, 1 ],
-    //},
-    //T: {
-    //    cols: 3,
-    //    data: [
-    //        1, 1, 1,
-    //        0, 1, 0,
-    //    ],
-    //},
+    I: {
+        cols: 4,
+        data: [ 1, 1, 1, 1 ],
+    },
+    T: {
+        cols: 3,
+        data: [
+            1, 1, 1,
+            0, 1, 0,
+        ],
+    },
 };
 
 
@@ -128,8 +130,6 @@ let M = {
             )
         });
 
-
-
         let tileSize = 21;
         let tileMap = _ => PIXI.Texture.from(images.tile);
         let gridArgs = {
@@ -140,7 +140,6 @@ let M = {
 
         let self = {
             gridArgs,
-            //grid,
             algebra: galge,
             keys: {
                 left: Keyboard(37),
@@ -149,15 +148,12 @@ let M = {
                 down: Keyboard(40),
             },
             ticker: new PIXI.ticker.Ticker(),
-            //actions: [],
             initialized: false,
             descendSpeed: startSpeed,
             releasing: false,
             running: false,
             timerId: null,
-            level: 0,
             dropSpeed: 300,
-            score: 0,
             clearCount: 0,
             rotateTime: 0.4,
             moveTime: 0.4,
@@ -227,7 +223,7 @@ let M = {
             if (self.releaseAction) {
                 await self.releaseAction;
                 self.releaseAction = null;
-            } 
+            }
 
             let points = self.currentBlock.points;
             await M.moveDown(self);
@@ -241,7 +237,6 @@ let M = {
                 while (points.length > 0) {
                     points = await M.searchMatches(self, points, ++combo);
                 }
-                console.log("score", self.score, self.clearCount);
                 self.actions.block(false);
 
                 let gameover = M.newBlock(self);
@@ -251,7 +246,7 @@ let M = {
                     M.nextLevel(self);
                     self.clearCount = 0;
                 }
-                
+
                 if (gameover) {
                     M.gameOver(self);
                 }
@@ -263,7 +258,7 @@ let M = {
             } else {
                 self.descending = false;
             }
-        } 
+        }
         clearTimeout(self.timerId);
         if (force) {
             loop();
@@ -273,7 +268,8 @@ let M = {
     },
 
     nextLevel(self) {
-        self.level++;
+        //self.level++;
+        self.info.ref.level++;
         self.descendSpeed -= speedDiff;
         if (self.descendSpeed < 0) {
             self.descendSpeed = 0;
@@ -307,13 +303,14 @@ let M = {
         }
         let promises = [];
 
-        if (table.length > 0) {
-            Anima.vibrate(self.grid, {seconds: .2, end: 1.01});
-        }
         for (let row of table) {
+            //await PixiUtil.flashSprites(row);
+            Anima.vibrate(self.grid, {seconds: .2, end: 1.01});
             promises = promises.concat(row.map(s => Anima.boom(s)))
             self.clearCount += row.length;
-            self.score += row.length*combo;
+            self.info.ref.score += row.length*combo;
+            if (combo > 1)
+                self.comboText.setText("chain x"+combo);
         }
 
         if (promises.length > 0) {
@@ -414,17 +411,51 @@ let M = {
         });
         self.gameStage.add(table.grid);
         Layout.leftOf({}, self.grid, table.grid);
+
+        self.info = InfoText.new({
+            ref: {
+                score: 0,
+                level: 1,
+                //time: 0,
+            },
+            font: {
+                fill: 0xeeeeee,
+                fontSize: 20,
+            },
+            bg: {
+                color: 0x222222,
+                alpha: 0.8,
+            },
+            valueLen: 4,
+        });
+        self.gameStage.add(self.info.container);
+        Layout.leftOf({align: "right"}, self.grid, self.info.container);
+
+        let comboText = FadeText.new("combo", {
+            fontSize: 20,
+            fill: 0x00ffff,
+        });
+        self.comboText = comboText;
+
+        self.gameStage.addChild(comboText);
+        Layout.leftOf({align: "center", marginX: 100}, self.grid, comboText);
+        //setInterval(() => {
+        //    comboText.setText((Math.random()*100)+"");
+        //}, 3500);
     },
 
     stop(self) {
+        if (self.info)
+            self.info.container.destroy({children: true});
         if (self.table)
             self.table.grid.destroy({children: true});
+        if (self.grid)
+            self.grid.destroy({children: true});
+
         self.actions.stop();
         M.unlistenKeys(self);
         self.running = false;
         clearTimeout(self.timerId);
-        if (self.grid)
-            self.grid.destroy({children: true});
     },
 
     async start(self) {
@@ -572,7 +603,7 @@ let M = {
     shift(self) {
         return self.actions.add(_=> self.grid.dropVertical(), true);
         //let woah = null;
-        //M.queueAction(self, 
+        //M.queueAction(self,
         //    async function() {
         //        let p = self.grid.dropVertical();
         //        return p.then(_=> woah());
@@ -597,10 +628,10 @@ let M = {
         let shape = shapes[shapeName];
         if (!shape)
             throw "unknown shape: " + shapeName;
-        
+
         let {cols, data, square, pivot} = shape;
         let block = Block.new({
-            cols, 
+            cols,
             square,
             rows: 2,
             pivot,
@@ -640,7 +671,7 @@ let M = {
         return self.actions.add(() => M.moveBlock(self, self.currentBlock, {x: -1, y: 0}));
         //if (!self.currentBlock || self.releaseAction)
         //    return;
-        //M.queueAction(self, 
+        //M.queueAction(self,
         //    () => M.moveBlock(self, self.currentBlock, {x: -1, y: 0}));
     },
 
@@ -648,7 +679,7 @@ let M = {
         return self.actions.add(() => M.moveBlock(self, self.currentBlock, {x: 1, y: 0}));
         //if (!self.currentBlock || self.releaseAction)
         //    return;
-        //M.queueAction(self, 
+        //M.queueAction(self,
         //    () => M.moveBlock(self, self.currentBlock, {x: 1, y: 0}));
     },
 
@@ -686,7 +717,7 @@ let M = {
         //if (!self.currentBlock || self.releaseAction)
         //    return Promise.reject();
         //let woah = null;
-        //M.queueAction(self, 
+        //M.queueAction(self,
         //    async function() {
         //        let p = M.moveBlock(self, self.currentBlock, {x: 0, y: 1});
         //        return p.then(_=> woah());
@@ -702,22 +733,6 @@ let M = {
         }
         self.releaseAction = self.actions.add(_=> M.releaseBlock(self, self.currentBlock));
         return self.releaseAction;
-
-        //if (!self.currentBlock || self.releaseAction)
-        //    return Promise.reject();
-        //self.releaseAction = M.releaseBlock(self, self.currentBlock);
-        //await self.releaseAction;
-        //return Promise.resolve();
-        //let woah = null;
-        //M.queueAction(self, 
-        //    async function() {
-        //        let p = M.releaseBlock(self, self.currentBlock);
-        //        self.releaseAction = p;
-        //        //p.then(_=> woah());
-        //});
-        //return new Promise(resolve => {
-        //    woah = resolve;
-        //});
     },
 
     rotate(self) {
@@ -732,7 +747,6 @@ let M = {
             moved = await self.grid.moveBlock({block, dir: {x: 0, y: 1}, speed: self.dropSpeed});
         }
         M.startDescension(self, true);
-        return Promise.resolve();
     },
 
     rotateBlock(self, block) {
