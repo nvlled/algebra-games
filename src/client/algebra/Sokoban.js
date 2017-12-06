@@ -450,8 +450,8 @@ let M = {
         }
 
         let newBtn = text => Button.new({
-            text, 
-            fontSize: 40,
+            text,
+            fontSize: 30,
             pointerdown: handler,
             bgStyle: {
                 normal: 0x666600,
@@ -467,9 +467,9 @@ let M = {
 
         mainMenu = Layout.table(
             {
-                cols: 5, 
-                margin: 20, 
-            }, 
+                cols: 5,
+                margin: 10,
+            },
             ...buttons
         );
         backBtn = Button.create({
@@ -517,7 +517,7 @@ let M = {
         gameStage.watch(self.player);
         M.createPlayMenu(self);
         gameStage.showMenuBar();
-    }, 
+    },
 
     start(self) {
         M.init(self);
@@ -598,7 +598,7 @@ let M = {
 
     createMainMenu(self) {
         let {gameStage} = self;
-        gameStage.createMenu({
+        let menu = gameStage.createMenu({
             title: "Sokoban",
             showBg: false,
             textStyle: {

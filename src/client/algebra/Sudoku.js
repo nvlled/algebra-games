@@ -373,10 +373,10 @@ let M = {
             let sprite = grid.tileAt({x: 0, y: 0});
             let elemSprites = self.algebra.createAllSprites().slice(0, size);
             let blah = Layout.col({
+                stretch: false,
                 center: true,
-                marginX: -20,
-                width: tileSize*.7,
-                height: tileSize*.7,
+                width: tileSize*.9,
+                height: tileSize*.9,
             }, ...elemSprites);
             Layout.leftOf({align:"left"}, self.grid, blah);
             elemSprites.forEach(s => {
@@ -619,7 +619,7 @@ let M = {
             M.clearSprites(self);
         }
         self.gameStage.add(clearBtn);
-        Layout.leftOf({align: "right", marginY: 10}, self.grid, clearBtn);
+        Layout.belowOf({align: "right", marginY: 10}, self.grid, clearBtn);
         self.clearBtn = clearBtn;
     },
 
