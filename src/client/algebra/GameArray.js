@@ -4,13 +4,13 @@ let Util = require("src/client/algebra/Util");
 // Decoupled array operations
 // drop(→)
 // drop(↓)
-// 0 0 0 0 0 0 0 
-// 0 0 1 0 0 0 0 
-// 0 1 1 1 0 0 0 
-// 0 0 X 0 0 0 0 
-// 0 0 0 0 0 0 0 
-// 0 0 0 1 0 0 0 
-// 0 1 1 1 0 0 0 
+// 0 0 0 0 0 0 0
+// 0 0 1 0 0 0 0
+// 0 1 1 1 0 0 0
+// 0 0 X 0 0 0 0
+// 0 0 0 0 0 0 0
+// 0 0 0 1 0 0 0
+// 0 1 1 1 0 0 0
 
 // 0 1 2 3 4 5 6
 // 0 0 0 0 0 0 0 0
@@ -18,7 +18,7 @@ let Util = require("src/client/algebra/Util");
 // 0 0 0 1 0 0 0 2
 // 0 0 0 0 0 0 0 3
 
-// the algorithm doesn't 
+// the algorithm doesn't
 // work on disjoint block
 // 0 1 2 3 4 5 6
 // 0 1 0 0 0 0 0 0
@@ -58,7 +58,7 @@ function groupBy(dir, points) {
     }
     let groups = [];
     for (let [_, group] of Object.entries(groupMap)) {
-        // sort each group so that the first elem 
+        // sort each group so that the first elem
         // of each group is the farthest towards dir
         group.sort((a, b) => {
             return Vec.dot(dir, b) - Vec.dot(dir, a);
@@ -70,7 +70,7 @@ function groupBy(dir, points) {
 
 //
 // Friendly reminder: floor the numbersss
-// 
+//
 let M = {
     // note to self:
     // always take an object as a parameter on create()
@@ -190,7 +190,7 @@ let M = {
 
 
     // I'm not sure how grouping will behave
-    // on diagonal movements but oh well... 
+    // on diagonal movements but oh well...
     //
     // dir = [0, 1]
     // [3,1].[1, 0] = 3*1 + 1*0 = 3
@@ -222,12 +222,10 @@ let M = {
             if (!head) {
                 continue;
             }
-            
+
             let head_ = Vec.new(head).add(dir);
-            //if (!M.isOccupied(self, head_)) {
             if (!M.isOccupied(self, head_) ||
                     pointset[M.indexOf(self, head_)]) {
-                //group.forEach(p => {
                 for (let p of group) {
                     let i = p[GROUPIDX];
                     let p_ = Vec.new(p).add(dir);
@@ -240,16 +238,11 @@ let M = {
                     else
                         points_.push([p, p_]);
                 };
-                //points_ = points_.concat(group.map(p => {
-                //    let p_ = Vec.new(p).add(dir);
-                //    // point p moved to point p_
-                //    return [p, /*->*/ p_];
-                //}));
             } else if (rigid) {
                 return [];
             }
         }
-        if (apply) 
+        if (apply)
             M.apply(self, points_);
         return points_;
     },
@@ -270,10 +263,10 @@ let M = {
     insert(self, {
         points=[],        // [{val, x,y} ...]
         data=[],
-        nil='X' 
+        nil='X'
     } = {}) {
         for (let i = 0; i < points.length; i++) {
-            let v = data[i] == null ? nil : data[i]; 
+            let v = data[i] == null ? nil : data[i];
             M.set(self, points[i], v);
         }
     },
@@ -361,7 +354,7 @@ let M = {
         let {cols, rows} = self;
         let outY = y < 0 || y >= rows;
         let outX = x < 0 || x >= cols;
-        return outX || outY; 
+        return outX || outY;
     },
 
     randomPos(self) {
@@ -393,150 +386,12 @@ let M = {
     },
 
     apply(self, paths) {
-        //let vals = [];
-        //for (let [{x, y}, {x: x_, y: y_}] of paths) {
-        //    let i = M.indexOf(self, {x, y});
-        //    vals[i] = self.data[i];
-        //}
-
         paths = paths.filter(p => p);
         let values = M.detachPoints(self, paths.map(([p]) => p));
         paths.forEach(([_, p], i) => {
             M.set(self, p, values[i]);
         });
-
-        // TODO: detach src points first
-        //let dests = [];
-        //for (let p of paths) {
-        //    //if (!p)
-        //    //    continue;
-        //    [{x, y}, {x: x_, y: y_}] = p
-        //    let i = M.indexOf(self, {x, y});
-        //    let j = M.indexOf(self, {x: x_, y: y_});
-        //    dests[j] = true;
-
-        //    //let val = vals[i];
-        //    //let val = M.get(self, {x, y});
-        //    let nil = self.nil;
-        //    if (!dests[i])
-        //        M.set(self, {x, y},   nil);
-        //    M.set(self, {x: x_, y: y_}, val);
-        //}
     },
-
-    // 0 1 2 3 4 5 6
-    // 0 1 0 0 0 0 0 0
-    // 1 0 0 0 0 0 0 1
-    // 0 0 0 0 1 0 0 2
-    // 0 0 0 1 0 0 1 3
-    // 1 1 0 0 0 0 0 4
-    // 0 0 0 1 1 0 0 5
-    //drop(self, {
-    //    //points=[],
-    //    dir={x: 0, y: 1}, // {x, y}
-    //    rigid=true,
-    //    limit=0,
-    //    apply=false,
-    //} = {}) {
-    //    dir = Vec.new(dir);
-    //    let {cols, rows} = self;
-    //    let forth   = dir.new().mul(cols, rows).len();
-    //    let wayside = dir.new().rotate().mul(rows, cols).len();
-
-    //    let start = dir.new().mul(rows, cols);
-    //    let test2 = dir.new().neg();
-    //    let test3 = dir.new().rotate().mul(cols, rows);
-    //    console.log("dir:", dir+"");
-    //    console.log("start:", start+"");
-    //    console.log("test2:", test2+"");
-    //    console.log("test3:", test3+"");
-
-    //    let lastOccupied = [];// indexed with x
-    //    {
-    //        let y = rows-1;
-    //        for (let x = 0; x < wayside; x++) {
-    //            if (M.isOccupied(self, {x, y}))
-    //                lastOccupied[x] = y;
-    //            else
-    //                lastOccupied[x] = y+1;
-    //        }
-    //    }
-
-    //    let points_ = [];
-    //    for (let y = forth-3; y >= limit; y--) {
-    //        for (let x = 0; x < wayside; x++) {
-    //            if (!M.isOccupied(self, {x, y}))
-    //                continue;
-    //            let y_ = lastOccupied[x]-1;
-    //            if (y < y_) {
-    //                //console.log(x, y, " ==> ", x, y_);
-    //                points_.push([
-    //                    {x, y},
-    //                    {x, y: y_},
-    //                ]);
-    //            }
-    //            lastOccupied[x] = y;
-    //        }
-    //    }
-    //    if (apply)
-    //        M.apply(self, points_);
-    //    return points_;
-    //},
-
-
-    //dropDown(self, {
-    //    //points=[],
-    //    //dir={x: 0, y: 1}, // {x, y}
-    //    rigid=true,
-    //    limit=0,
-    //    apply=false,
-    //} = {}) {
-    //    //dir = Vec.new(dir);
-    //    let {cols, rows} = self;
-    //    //let forth   = dir.new().mul(cols, rows).len();
-    //    //let wayside = dir.new().rotate().mul(rows, cols).len();
-
-    //    //let start = dir.new().mul(rows, cols);
-    //    //let test2 = dir.new().neg();
-    //    //let test3 = dir.new().rotate().mul(cols, rows);
-    //    //console.log("dir:", dir+"");
-    //    //console.log("start:", start+"");
-    //    //console.log("test2:", test2+"");
-    //    //console.log("test3:", test3+"");
-
-    //    let lastOccupied = [];// indexed with x
-    //    {
-    //        let y = rows-1;
-    //        for (let x = 0; x < cols; x++) {
-    //            if (M.isOccupied(self, {x, y}))
-    //                lastOccupied[x] = y;
-    //            else
-    //                lastOccupied[x] = y+1;
-    //        }
-    //    }
-
-    //    let points_ = [];
-    //    for (let y = rows-2; y >= limit; y--) {
-    //        for (let x = 0; x < cols; x++) {
-    //            if (!M.isOccupied(self, {x, y}))
-    //                continue;
-    //            let y_ = lastOccupied[x]-1;
-    //            if (y < y_) {
-    //                //console.log(x, y, " ==> ", x, y_);
-    //                points_.push([
-    //                    {x, y},
-    //                    {x, y: y_},
-    //                ]);
-    //                lastOccupied[x] = y_;
-    //            } else {
-    //                lastOccupied[x] = y;
-    //            }
-    //        }
-    //    }
-    //    if (apply)
-    //        M.apply(self, points_);
-    //    return points_;
-    //},
 
     drop(self, {
         apply=false,
@@ -549,6 +404,78 @@ let M = {
         return [];
     },
 
+    getNeighbours(self, {x, y}) {
+        return [ Vec.left, Vec.right, Vec.down, Vec.up]
+            .map(f => f({x, y}));
+    },
+
+    findPath(self, args) {
+        var current = args.current;
+        var start = args.start;
+        var end = args.end;
+        var fn = args.fn || function(_, cc) { cc() };
+        var done = args.done || function(result) {};
+        var speed = args.speed || 500;
+        var trace = {};
+        var visited = {};
+        var frontier = [start];
+
+        let indexOf = pos => M.indexOf(self, pos);
+        function tracePath(pos) {
+            var path = [pos];
+            while(true) {
+                var k = indexOf(pos);
+                var prev = trace[k];
+                if (!prev)
+                    break;
+                path.unshift(prev);
+                pos = prev;
+            }
+            return path;
+        }
+
+        function isVisisted(pos) {
+            var k = indexOf(pos);
+            return visited[k] != null;
+        }
+        function visit(pos) {
+            var k = indexOf(pos);
+            visited[k] = true;
+        }
+
+        visit(start);
+
+        function loop() {
+            if (frontier.length <= 0) {
+                done(null);
+                return;
+            }
+            // FIX: trace[pos] = ...
+            var pos = frontier.shift();
+            fn(tracePath(pos), function() {
+                if (Vec.equals(pos, end)) {
+                    done(tracePath(pos));
+                    return;
+                }
+                // TODO: add priorities
+                var neighbours =
+                    M.getNeighbours(self, pos)
+                    .filter(function(pos) {
+                        return !isVisisted(pos) && !M.isOccupied(self, pos);
+                    });
+
+                neighbours.forEach(function(pos_) {
+                    var idx = indexOf(pos_);
+                    trace[idx] = pos;
+                    visit(pos_);
+                });
+                frontier = frontier.concat(neighbours);
+                setTimeout(loop, speed);
+            });
+        }
+        loop();
+    },
+
     dropHorizontal(self, {
         limit=0,
         apply=false,
@@ -556,7 +483,6 @@ let M = {
     } = {}) {
         let {cols, rows} = self;
         let startX = dir > 0 ? cols : -1;
-        //let endX = dir > 0 ? 0 : cols;
 
         let lastOccupied = [];
         {
@@ -576,12 +502,8 @@ let M = {
                 if (!M.isOccupied(self, {x, y}))
                     continue;
                 let x_ = lastOccupied[y]-dir;
-                if ((dir > 0 && x < x_) 
-                   || (dir < 0 && x > x_)) {
-                    //points_.push([
-                    //    {x, y},
-                    //    {x: x_, y},
-                    //]);
+                if ((dir > 0 && x < x_)
+                    || (dir < 0 && x > x_)) {
                     points_[i] = [
                         {x, y},
                         {x: x_, y},
@@ -625,12 +547,8 @@ let M = {
                 if (!M.isOccupied(self, {x, y}))
                     continue;
                 let y_ = lastOccupied[x]-dir;
-                if ((dir > 0 && y < y_) 
-                   || (dir < 0 && y > y_)) {
-                    //points_.push([
-                    //    {x, y},
-                    //    {x, y: y_},
-                    //]);
+                if ((dir > 0 && y < y_)
+                    || (dir < 0 && y > y_)) {
                     points_[i] = [
                         {x, y},
                         {x, y: y_},
@@ -646,50 +564,6 @@ let M = {
             M.apply(self, points_);
         return points_;
     },
-
-    // dropHorizontal
-    //dropRight(self, {
-    //    rigid=true,
-    //    limit=0,
-    //    apply=false,
-    //    reverse=false,
-    //} = {}) {
-    //    let {cols, rows} = self;
-
-    //    let lastOccupied = [];// indexed with x
-    //    {
-    //        let x = cols-1;
-    //        for (let y = 0; y < rows; y++) {
-    //            if (M.isOccupied(self, {x, y}))
-    //                lastOccupied[y] = x;
-    //            else
-    //                lastOccupied[y] = x+1;
-    //        }
-    //    }
-    //    console.log("last occupied", ...lastOccupied);
-
-    //    let points_ = [];
-    //    for (let x = cols-2; x >= limit; x--) {
-    //        for (let y = 0; y < rows; y++) {
-    //            if (!M.isOccupied(self, {x, y}))
-    //                continue;
-    //            let x_ = lastOccupied[y]-1;
-    //            if (x < x_) {
-    //                //console.log(x, y, " ==> ", x_, y);
-    //                points_.push([
-    //                    {x, y},
-    //                    {x: x_, y},
-    //                ]);
-    //                lastOccupied[y] = x_;
-    //            } else {
-    //                lastOccupied[y] = x;
-    //            }
-    //        }
-    //    }
-    //    if (apply)
-    //        M.apply(self, points_);
-    //    return points_;
-    //},
 
 }
 M.Proto = Util.prototypify(M);
