@@ -270,7 +270,7 @@ let M = {
     initGrid(self) {
         let {algebra, grid} = self;
         let {rows, cols} = grid;
-        let blurVal = Util.cycle(8, 15, 0.10);
+        let blurVal = Util.cycle(7, 10, 0.01);
         let blur = new PIXI.filters.BlurFilter(blurVal());
 
         if (!self.blurLoop) {
@@ -295,6 +295,8 @@ let M = {
         let data = levels[level];
         for (let n = 0; n < rows*cols; n++) {
             let sprite = grid.spriteOn(n);
+            sprite.tint = Util.randomColor();
+
             let {x, y} = grid.spritePos(sprite);
             if (data[n] == 0)
                 sprite.visible = false;

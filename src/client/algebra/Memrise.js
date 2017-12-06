@@ -192,7 +192,7 @@ let M = {
         let checking = false;
         self.grid.onTileClick = async (pos) => {
             let {grid, algebra} = self;
-            if (shownTiles.length == paramCount || checking) 
+            if (shownTiles.length == paramCount || checking)
                 return;
 
             await showTile(pos);
@@ -209,6 +209,11 @@ let M = {
                         grid.tileAt(pos).alpha = 0.2;
                         indices[grid.indexOf(pos)] = true;
                     });
+                    let len = Object.keys(indices).length;
+                    if (len == self.boardSize) {
+                        await Util.sleep(1000);
+                        M.createWinGame(self);
+                    }
                 }
                 shownTiles.splice(0);
                 checking = false;
@@ -217,13 +222,36 @@ let M = {
 
     },
 
+    createWinGame(self) {
+        let {gameStage} = self;
+        gameStage.createMenu({
+            title: "You win....",
+            showBg: false,
+            textStyle: {
+                fill: 0x000088,
+                fontSize: 50,
+            },
+            onShow: ()=> {
+                M.pause(self);
+            },
+            onHide: ()=> {
+                M.resume(self);
+            },
+        }, {
+            "back to main": ()=>{
+                M.stop(self);
+                M.start(self);
+            },
+        });
+    },
+
     checkTiles(self, pos) {
         let {grid} = self;
 
         let row = grid.getRow(pos.y, false);
         let col = grid.getColumn(pos.x, false);
 
-        let sprite = self.grid.spriteAt(pos); 
+        let sprite = self.grid.spriteAt(pos);
         if (!sprite)
             return;
 
@@ -243,9 +271,9 @@ let M = {
 
         });
         if (row.length > 1)
-            self.grid.hightlightTiles(row, 0xff8888); 
+            self.grid.hightlightTiles(row, 0xff8888);
         if (col.length > 1)
-            self.grid.hightlightTiles(col, 0xff8888); 
+            self.grid.hightlightTiles(col, 0xff8888);
     },
 
     newGame(self, size=4) {
@@ -262,12 +290,14 @@ let M = {
                 grid.hideTiles(Math.floor(n/2));
             self.backTile = grid.tiles[0].texture;
             self.frontTile = GridTiles.randomTexture(PIXI.loader.resources);
+
+            self.boardSize =
+                n%2 != 0 ? n-1 : n;
         }
         let algebra = self.algebra = createTable(size);
         self.randomize();
         M.handleInput(self);
         M.createPlayMenu(self);
-
 
         let table = self.table = GraphicTable.new(self.algebra, {
             tileSize: 35,
