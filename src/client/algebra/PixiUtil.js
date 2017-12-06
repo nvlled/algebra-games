@@ -1,6 +1,7 @@
 let PIXI = require("src/client/pixi");
 let Vec = require("src/client/algebra/Vec");
 let Util = require("src/client/algebra/Util");
+let G = require("src/client/algebra/G");
 
 let M = {
     point(container, x, y) {
@@ -59,22 +60,49 @@ let M = {
         x=0, y=0, width, height,
         radius=12, color=0x222222, alpha=1, renderer
     }) {
-        let g = new PIXI.Graphics();
-        g.beginFill(color, alpha);
-        g.drawRoundedRect(x, y,
-        //g.drawRoundedRect(0, 0,
-            width, height, radius);
-        g.endFill();
+        if (color == null)
+            alpha = 0;
 
-        if (!renderer)
-            return g;
+        let sprite = new PIXI.Sprite();
+        sprite.draw = ({width, height, color}) => {
+            console.log("Y");
+            let g = new PIXI.Graphics();
+            g.clear();
+            g.beginFill(color, alpha);
+            g.drawRoundedRect(x, y,
+                width, height, radius);
+            g.endFill();
 
-        let rt = PIXI.RenderTexture.create(width, height);
-        renderer.render(g, rt);
-        let sprite = new PIXI.Sprite(rt);
-        //sprite.alpha = alpha;
+            if (!renderer)
+                renderer = G.renderer;
 
-        return sprite;
+            let rt = PIXI.RenderTexture.create(width, height);
+            renderer.render(g, rt);
+            sprite.texture = rt;
+        }
+        sprite.draw({width, height, color});
+
+        return new Proxy(sprite, {
+            set(_, name, val) {
+                let modified = false;
+                if (name == "color") {
+                    color = val;
+                    modified = true;
+                } else if (name == "width") {
+                    width = val;
+                    modified = true;
+                } else if (name == "height") {
+                    height = val;
+                    modified = true;
+                } else {
+                    sprite[name] = val;
+                }
+                if (modified)
+                    sprite.draw({width, height, color});
+
+                return true;
+            },
+        });
     },
 
     intersects(sprite1, sprite2) {

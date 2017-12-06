@@ -37,6 +37,7 @@ let RotatedArray = require("src/client/algebra/RotatedArray");
 
 let Backgrounds = require("src/client/algebra/Backgrounds");
 let GridTiles = require("src/client/algebra/GridTiles");
+let G = require("src/client/algebra/G");
 
 window.globals = { };
 
@@ -53,11 +54,13 @@ async function setup() {
     Backgrounds.loadTextures(PIXI.loader);
     GridTiles.loadTextures(PIXI.loader);
 
+
     renderer = PIXI.autoDetectRenderer({
         width: 640,
         height: 480,
         forceFXAA: true,
     });
+    G.renderer = renderer;
 
     renderer.view.onmousedown = e => e.preventDefault();
     document.body.querySelector("div.game").appendChild(renderer.view);
@@ -156,6 +159,9 @@ function main() {
         height: renderer.height-1,
         background: Backgrounds.random(resources).texture,
     });
+    G.gameStage = gameStage;
+    G.resources = resources;
+
     gameStage.createMenuBar();
     gameStage.start();
     globals.gameStage = gameStage;
@@ -172,7 +178,7 @@ function main() {
         h: _=> gameStage.moveBy({x:  step, y: 0}),
         l: _=> gameStage.moveBy({x: -step, y: 0}),
     });
-    kmap.listen();
+    //kmap.listen();
 
     // fix texture bleed
     for (let rsrc  of Object.values(resources)) {
