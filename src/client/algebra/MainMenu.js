@@ -175,14 +175,14 @@ let M = {
                 }
 
                 Layout.centerOf(
-                    {animate: true}, 
+                    {animate: true},
                     mainMenu,
                     s
                 );
                 await Anima.scaleBy(s, {end: 0.5, seconds: 1.0});
-                await Anima.moveBy(s, 
+                await Anima.moveBy(s,
                     {
-                        end: {y: 1000}, 
+                        end: {y: 1000},
                         seconds: 0.3,
                     });
 
@@ -192,11 +192,14 @@ let M = {
         }
 
         let newBtn = text => Button.new({
-            text, 
+            text,
             fontSize: 30,
             pointerdown: handler,
         });
 
+        let blank = newBtn("blank");
+        blank.interactive = false;
+        blank.visible = false;
         buttons = [
             newBtn("Drop"),
             newBtn("Ten24"),
@@ -207,14 +210,16 @@ let M = {
             newBtn("Slider"),
             newBtn("LightsOut"),
             newBtn("Sokoban"),
+            blank,
+            newBtn("FiveMore"),
         ];
 
         mainMenu = Layout.table(
             {
-                cols: 3, 
-                margin: 20, 
+                cols: 3,
+                margin: 5,
                 height: 100
-            }, 
+            },
             ...buttons
         );
         gameStage.addUI(mainMenu);
@@ -238,7 +243,7 @@ let M = {
         for (let e of self.team2Elems) {
             table.push([e, rand1(), rand2()]);
         }
-        
+
         return table;
     },
 
