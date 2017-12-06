@@ -93,14 +93,14 @@ let M = {
         let btn = Button.new({
             image: "static/images/gui/transparentLight/transparentLight31.png",
             fitImage: true,
-            width: 50,
-            height: 50,
+            width: 45,
+            height: 45,
             alpha: 0,
         });
         btn.scale.set(0.5);
         let menuBar = PixiUtil.roundedRect({
             color: 0x222222,
-            width: self.world.width, height: 50, alpha: 0.4,
+            width: self.world.width, height: 30, alpha: 0.4,
             x: 0,
             y: 0,
             radius: 0,
@@ -163,6 +163,7 @@ let M = {
         self.menu = menu;
         if (!opts.hide)
             M.showMenu(self);
+        return menu;
     },
 
     setMenu(self, menu, animation=null) {
