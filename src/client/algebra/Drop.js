@@ -294,7 +294,12 @@ let M = {
                 continue;
             if (exclude.has(pos))
                 continue;
-            let params = await M.findCandidateParameters(self, {pos, size, exclude});
+            let params = await M.findCandidateParametersH(self, {pos, size, exclude});
+            if (params.length > 0) {
+                SetUtil.addAll(exclude, params);
+                table.push(params);
+            }
+            params = await M.findCandidateParametersV(self, {pos, size, exclude});
             if (params.length > 0) {
                 SetUtil.addAll(exclude, params);
                 table.push(params);
@@ -335,7 +340,7 @@ let M = {
         return [];
     },
 
-    async findCandidateParameters(self, {pos, size, matchSize=true, exclude=[]}) {
+    async findCandidateParametersH(self, {pos, size, matchSize=true, exclude=[]}) {
         let excludeSet = exclude instanceof Set ? exclude : new Set(exclude);
         let shouldInclude = x => !excludeSet.has(x);
 
@@ -346,6 +351,30 @@ let M = {
             let sprites = [];
             for (let x = pos.x-n; x < pos.x+size-n; x++) {
                 let sprite = grid.spriteAt({x, y: pos.y});
+                if (sprite && shouldInclude(sprite))
+                    sprites.push(sprite);
+            }
+
+            if (!matchSize || sprites.length == size) {
+                if (algebra.applySprites(...sprites)) {
+                    return sprites;
+                }
+            }
+        }
+        return [];
+    },
+
+    async findCandidateParametersV(self, {pos, size, matchSize=true, exclude=[]}) {
+        let excludeSet = exclude instanceof Set ? exclude : new Set(exclude);
+        let shouldInclude = elem => !excludeSet.has(elem);
+
+        let {grid, algebra} = self;
+        let result = [];
+
+        for (let n = 0; n < size; n++) {
+            let sprites = [];
+            for (let y = pos.y-n; y < pos.y+size-n; y++) {
+                let sprite = grid.spriteAt({y, x: pos.x});
                 if (sprite && shouldInclude(sprite))
                     sprites.push(sprite);
             }
