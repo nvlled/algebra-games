@@ -10,10 +10,12 @@ let Vec = require("src/client/algebra/Vec");
 let Backgrounds = require("src/client/algebra/Backgrounds");
 let Grid = require("src/client/algebra/Grid");
 let Block = require("src/client/algebra/Block");
+let Rsrc = require("src/client/algebra/Rsrc");
 let Keyboard = require("src/client/algebra/Keyboard");
 let EasingFn = require("src/client/algebra/EasingFn");
 let SlideContent = require("src/client/algebra/SlideContent");
 let Button = require("src/client/algebra/Button");
+let PixiUtil = require("src/client/algebra/PixiUtil");
 let Layout = require("src/client/algebra/Layout");
 let PIXI = require("src/client/pixi");
 
@@ -34,13 +36,13 @@ let M = {
     create({
         gameStage,
         resources,
-        rows=9,
-        cols=9,
-        tileSize=40,
-        tileSpace,
+        rows=10,
+        cols=10,
+        tileSize=30,
+        tileSpace=1,
         x, y,
-        seconds=0.3,
-        stretch=.9,
+        seconds=0.4,
+        stretch=.90,
         alpha=0.9,
 
         onGameOver=()=>{},
@@ -81,8 +83,7 @@ let M = {
 
     createAlgebra(self) {
         let {resources} = self;
-        let CharSprites = require("src/client/algebra/RpgSprites").new();
-        let sprites = CharSprites.getConstructors(resources);
+        let sprites = Rsrc.cake();
 
         let algebra = Algebra.new({
             table: randomTable(9, 7),
@@ -123,36 +124,37 @@ let M = {
             let poss = self.sprites.map(s => grid.spritePos(s));
             let newpos = Vec.new(poss[0]).add(dir);
 
-            let head = grid.spriteAt(poss[0]);
-            let sprite = grid.spriteAt(newpos);
-
-            if (sprite && self.sprites.indexOf(sprite) < 0) {
-                console.log(algebra.getElem(head), algebra.getElem(sprite));
-                let sprite_ = algebra.applySprites(head, sprite);
-                if (sprite_) {
-                    let p = grid.spritePos(head);
-                    Anima.fade(sprite, {end: 0});
-                    Anima.move(sprite, {end: head});
-                    Anima.fade(head, {end: 0});
-                    grid.setSprite({sprite: sprite_, x: p.x, y: p.y});
-                    self.gameStage.watch(sprite_, 0.3);
-                    await Anima.fade(sprite_, {start: 0, end: 1});
-                    self.sprites[0] = sprite_;
-                } else {
-                    self.sprites.unshift(sprite);
-                    poss = self.sprites.map(s => grid.spritePos(s));
-                    newpos = Vec.new(poss[0]).add(dir);
-                    await self.gameStage.watch(sprite, 0.3);
-                }
-            }
-
-
             if (grid.gameArray.outbounds(newpos)) {
                 let sprite = grid.spriteAt(poss[0]);
                 newpos = grid.wrapPos(newpos);
             }
+
+            let head = grid.spriteAt(poss[0]);
+            let sprite = grid.spriteAt(newpos);
+
+            if (sprite && self.sprites.indexOf(sprite) >= 0) {
+                console.log("game over");
+                self.actions.stop();
+                self.gameLoop.stop();
+                self.sprites.forEach(async s => {
+                    await Util.sleep(Util.randomInt(100, 300));
+                    Anima.fadeAway(s);
+                });
+                M.createGameOverMenu(self);
+                return;
+            }
+
+            if (sprite && self.sprites.indexOf(sprite) < 0) {
+                self.grow++;
+                Anima.fadeAway(sprite);
+
+                M.randomInsert(self, Util.randomInt(1,2));
+            }
+
+
             poss.unshift(newpos);
-            poss.pop();
+            let lastPos;
+            lastPos = poss.pop();
 
             let ps = self.sprites.map((sprite, i) => {
                 let src = grid.spritePos(sprite);
@@ -169,11 +171,48 @@ let M = {
                     force: true,
                     apply: true,
                     jump,
-                })
+                });
             });
             await Promise.all(ps);
+            if (self.grow > 0) {
+                self.grow--;
+                let sprite = PixiUtil.roundedRect({
+                    color: 0x00d0dd,
+                    alpha: 0.8,
+                    radius: 15,
+                    width: grid.tileWidth,
+                    height: grid.tileHeight,
+                });
+                if (lastPos) {
+                    grid.setSprite({sprite, x: lastPos.x, y: lastPos.y});
+                    self.sprites.push(sprite);
+                }
+            }
 
             return Promise.resolve();
+        });
+    },
+
+    createGameOverMenu(self) {
+        let {gameStage} = self;
+        gameStage.createMenu({
+            title: "game over",
+            showBg: false,
+            textStyle: {
+                fill: 0xdd0000,
+                fontSize: 60,
+            },
+            onShow: ()=> {
+                M.pause(self);
+            },
+            onHide: ()=> {
+                M.resume(self);
+            },
+        }, {
+            "Quit": ()=>{
+                M.stop(self);
+                M.start(self);
+            },
         });
     },
 
@@ -207,18 +246,23 @@ let M = {
         M.createAlgebra(self);
         M.listenKeys(self);
         M.randomize(self);
-        M.randomInsert(self, 10);
+        M.randomInsert(self, 2);
         M.createPlayMenu(self);
+        self.grow = 0;
 
-        self.gameStage.addUI(self.table.grid);
-        Layout.belowOf(
-            {inside: true, align: "right"}, 
-            self.gameStage.ui, self.table.grid
-        );
+        //self.gameStage.addUI(self.table.grid);
+        //Layout.belowOf(
+        //    {inside: true, align: "right"},
+        //    self.gameStage.ui, self.table.grid
+        //);
 
         let {left, right, up, down} = self.keys;
+        self.dir =
+            Util.shuffle(["left", "right", "up", "down"])
+                .map(k => Vec[k]({x: 0, y: 0}))[0];
+
         let fn = async () => {
-            let dir;
+            let dir = self.dir;
             if (right.isDown)
                 dir = {x:  1, y:  0};
             if (left.isDown)
@@ -234,7 +278,6 @@ let M = {
             await M.move(self);
         }
         self.gameLoop = Util.loop(fn);
-        self.gameStage.changeBackground(Backgrounds.randomName());
         //ticker.add(fn);
     },
 
@@ -248,6 +291,7 @@ let M = {
     },
 
     start(self) {
+        self.gameStage.changeBackground(Backgrounds.fullpath("grassy_plains_by_theodenn.jpg"));
         M.init(self);
         M.createMainMenu(self);
     },
@@ -350,36 +394,44 @@ let M = {
 
     randomize(self) {
         let sprites = [];
-        let len = Util.randomInt(5,10);
+        let len = Util.randomInt(5,8);
 
         let {grid, algebra} = self;
-        let x = 0;
+        let n = Math.floor(grid.cols/2);
+        let points = grid.getEmptyPoints()
+        Util.shuffle(points);
+        let pos = points[0];
         for (let i = 0; i < len; i++) {
-            let sprite = algebra.randomSprite();
-            if (sprite.stopIdling)
-                sprite.stopIdling();
-            grid.setSprite({sprite, x, y: 0});
+            let sprite = PixiUtil.roundedRect({
+                color: 0x00d0dd,
+                radius: 15,
+                alpha: 0.8,
+                width: grid.tileWidth,
+                height: grid.tileHeight,
+            });
+            grid.setSprite({sprite, x: pos.x, y: pos.y});
             sprites.push(sprite);
         }
-        self.gameStage.watch(sprites[0]);
         self.sprites = sprites;
     },
 
-    randomInsert(self, n=3) {
+    randomInsert(self, size=3) {
         let {algebra, grid} = self;
+        let filled = {};
+        let retries = 2048;
+        let ps = [];
         let points = grid.getEmptyPoints();
-        if (points.length < n)
-            return;
-
-        let exclude = new Set();
-        for (let i = 0; i < n; i++) {
-            let [p] = Util.randomSelect(points, exclude);
-            exclude.add(p);
+        Util.shuffle(points);
+        for (let n = 0; n < Math.min(points.length, size); n++) {
+            let {x, y} = points[n];
             let sprite = algebra.randomSprite();
-            let {x, y} = p;
-            grid.setSprite({sprite, x,y});
-            console.log(algebra.getElem(sprite), x, y);
+            console.log(x, y);
+            grid.setSprite({x, y, sprite});
+            ps.push(
+                Anima.scale(sprite, { start: 0.8, seconds: 0.2})
+            );
         }
+        return Promise.all(ps);
     },
 
     listenKeys(self) {
