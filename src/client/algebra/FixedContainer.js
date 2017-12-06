@@ -4,12 +4,19 @@ let M = {
     create(width, height) {
         return new Proxy(new PIXI.Container(), {
             set(target, name, value) {
-                if (name == "width") 
+                let resize = false;
+                if (name == "width") {
                     width = value;
-                else if (name == "height") 
+                    resize = true;
+                } else if (name == "height") {
                     height = value;
-                else
+                    resize = true;
+                } else {
                     target[name] = value;
+                }
+                if (resize && typeof target.onResize == "function") {
+                    target.onResize(width, height);
+                }
                 return true;
             },
             get(target, name) {
