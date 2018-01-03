@@ -16,6 +16,7 @@ let RotatedArray = require("src/client/algebra/RotatedArray");
 let SlideContent = require("src/client/algebra/SlideContent");
 let PIXI = require("src/client/pixi");
 let GraphicTable = require("src/client/algebra/GraphicTable");
+let Sound = require("src/client/algebra/Sound");
 
 let Backgrounds = require("src/client/algebra/Backgrounds");
 let GridTiles = require("src/client/algebra/GridTiles");
@@ -228,6 +229,7 @@ let M = {
                 );
             }
         }
+        Sound.play("bounce");
         await Promise.all(ps);
         await self.grid.drop({dir: self.lastDir});
         if (gameWin) {

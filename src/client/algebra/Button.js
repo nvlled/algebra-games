@@ -1,6 +1,7 @@
 let Layout = require("src/client/algebra/Layout");
 let PIXI = require("src/client/pixi");
 let Util = require("src/client/algebra/Util");
+let Sound = require("src/client/algebra/Sound");
 
 let defaultHandler = btnText => { };
 
@@ -140,6 +141,7 @@ let M = {
                 buttonText.style.fill = fgStyle.normal;
                 drawRect("normal");
             }
+            Sound.play("click");
         });
         container.setSize = function(args) {
             if (args.width)

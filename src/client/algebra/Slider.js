@@ -17,6 +17,7 @@ let SetUtil = require("src/client/algebra/SetUtil");
 let SlideContent = require("src/client/algebra/SlideContent");
 let TextureSet = require("src/client/algebra/TextureSet");
 let PixiUtil = require("src/client/algebra/PixiUtil");
+let Sound = require("src/client/algebra/Sound");
 
 let CoinSprites = require("src/client/algebra/CoinSprites");
 let Backgrounds = require("src/client/algebra/Backgrounds");
@@ -138,6 +139,7 @@ let M = {
                 grid.move({src: pos_, dest: pos, force: true, apply: true});
                 await grid.move({src: pos, dest: pos_, force: true, apply: true});
             }
+            Sound.play("click");
             if (M.isComplete(self)) {
                 console.log("done");
                 M.createWinGame(self);
@@ -190,6 +192,7 @@ let M = {
                 console.log("done");
                 M.createWinGame(self);
             }
+            Sound.play("click");
         }
     },
 

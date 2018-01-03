@@ -16,6 +16,7 @@ let Keymap = require("src/client/algebra/Keymap");
 let SlideContent = require("src/client/algebra/SlideContent");
 let PixiUtil = require("src/client/algebra/PixiUtil");
 let PIXI = require("src/client/pixi");
+let Sound = require("src/client/algebra/Sound");
 
 let Backgrounds = require("src/client/algebra/Backgrounds");
 let GridTiles = require("src/client/algebra/GridTiles");
@@ -158,6 +159,10 @@ let M = {
             }
         }
         s.pointerupoutside = function(e) {
+            if (Math.random() < 0.5)
+                Sound.play("mons1")
+            else
+                Sound.play("mons2")
             let {grid} = self;
             dragging = false; let p = e.data.global;
             let [gpos] = Util.nulla(grid.globalToGridPos(p));

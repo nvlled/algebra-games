@@ -6,6 +6,7 @@ let PixiUtil = require("src/client/algebra/PixiUtil");
 let Layout = require("src/client/algebra/Layout");
 let Menu = require("src/client/algebra/Menu");
 let FixedContainer = require("src/client/algebra/FixedContainer");
+let Sound = require("src/client/algebra/Sound");
 
 let gridSize = 50;
 let M = {
@@ -73,6 +74,9 @@ let M = {
         self.modules.push(game);
         game.init();
         game.start();
+        setTimeout(function() {
+            Sound.playMusic();
+        }, 1000);
     },
 
     exitModule(self) {
@@ -90,20 +94,62 @@ let M = {
     },
 
     createMenuBar(self) {
-        let btn = Button.new({
-            image: "static/images/gui/transparentLight/transparentLight31.png",
-            fitImage: true,
-            width: 45,
-            height: 45,
-            alpha: 0,
+        let w = 29;
+        let h = 29;
+        let bgcolor  = 0xdddd00;
+        let bgcolor2 = 0xffff00;
+        let btnMenu = Bouton.new({
+            color: 0x0000dd,
+            alpha: 1.0,
+            width: w,
+            height: h,
+            image: "menu",
+            bgcolor,
+            bgcolor2,
+            //bgalpha: 0,
+            bgalpha2: 9,
+            toggle: true,
+            stretchImage: false,
+            tap() {
+                M.showMenu(self);
+            },
         });
-        btn.scale.set(0.5);
-        let menuBar = PixiUtil.roundedRect({
-            color: 0x222222,
-            width: self.world.width, height: 30, alpha: 0.4,
-            x: 0,
-            y: 0,
-            radius: 0,
+
+        let btnHelp = Bouton.new({
+            color: 0x0000dd,
+            alpha: 1.0,
+            width: w,
+            height: h,
+            image: "help",
+            bgcolor,
+            bgcolor2,
+            stretchImage: false,
+            //toggle: true,
+            tap() {
+                if (self.showHelp)
+                    self.showHelp();
+            },
+        });
+
+        let btnSound = Bouton.new({
+            color: 0x0000dd,
+            alpha: 1.0,
+            width: w,
+            height: h,
+            image: "soundon",
+            image2: "soundoff",
+            bgcolor,
+            bgcolor2,
+            toggle: true,
+            stretchImage: false,
+            tap() {
+                if (btnSound.checked) {
+                    Sound.unmuteMusic();
+                } else {
+                    Sound.muteMusic();
+                }
+                //console.log("X");
+            },
         });
         btn.x = 0;
         btn.y = 0;

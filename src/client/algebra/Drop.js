@@ -17,6 +17,11 @@ let GraphicTable = require("src/client/algebra/GraphicTable");
 let EasingFn = require("src/client/algebra/EasingFn");
 let SlideContent = require("src/client/algebra/SlideContent");
 
+
+
+
+let Sound = require("src/client/algebra/Sound");
+
 let Backgrounds = require("src/client/algebra/Backgrounds");
 let GridTiles = require("src/client/algebra/GridTiles");
 
@@ -304,6 +309,7 @@ let M = {
         let promises = [];
 
         for (let row of table) {
+            Sound.play("explode");
             //await PixiUtil.flashSprites(row);
             Anima.vibrate(self.grid, {seconds: .2, end: 1.01});
             promises = promises.concat(row.map(s => Anima.boom(s)))

@@ -16,6 +16,8 @@ let Button = require("src/client/algebra/Button");
 let SlideContent = require("src/client/algebra/SlideContent");
 let SetUtil = require("src/client/algebra/SetUtil");
 let PixiUtil = require("src/client/algebra/PixiUtil");
+let Sound = require("src/client/algebra/Sound");
+let Sound = require("src/client/algebra/Sound");
 
 let CoinSprites = require("src/client/algebra/CoinSprites");
 let Backgrounds = require("src/client/algebra/Backgrounds");
@@ -165,6 +167,7 @@ let M = {
 
     handleInput(self) {
         self.grid.onTileClick = async function(pos) {
+            Sound.play("cloth");
             await M.toggleAt(self, pos);
             if (M.isComplete(self)) {
                 console.log("complete");
