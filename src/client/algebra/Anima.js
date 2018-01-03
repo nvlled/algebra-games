@@ -246,6 +246,16 @@ let M = {
             if (start.y == null) start.y = end.y;
         }
 
+        if (start.x == null)
+            start.x = sprite.x;
+        if (start.y == null)
+            start.y = sprite.y;
+
+        if (end.x == null)
+            end.x = sprite.x;
+        if (end.y == null)
+            end.y = sprite.y;
+
         let d = distVec(start, end);
 
         if (speed == null)
