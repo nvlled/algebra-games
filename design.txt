@@ -11,7 +11,6 @@ TODO:
 *five or more
 
 
-
 TODO: allow multiple operators on each algebra
 operators can be represented as the direction of the drag for instance
 
@@ -113,6 +112,19 @@ hours played:
 
 
 --------------------------------------------------------
+
+
+SlideContent.new(
+    createContent(
+        "Drop",
+        [ "Drop is game blah blah", image],
+    ),
+    createContent(
+        "Use the arrow keys to control the block" 
+    ),
+)
+
+
 
 
 

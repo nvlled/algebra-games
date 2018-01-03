@@ -16,8 +16,17 @@ let EasingFn = require("src/client/algebra/EasingFn");
 let SlideContent = require("src/client/algebra/SlideContent");
 let Button = require("src/client/algebra/Button");
 let PixiUtil = require("src/client/algebra/PixiUtil");
+let Sound = require("src/client/algebra/Sound");
 let Layout = require("src/client/algebra/Layout");
 let PIXI = require("src/client/pixi");
+let Bouton = require("src/client/algebra/Bouton");
+let Table = require("src/client/algebra/Table");
+let TextProp = require("src/client/algebra/TextProp");
+let InputDialog = require("src/client/algebra/InputDialog");
+let Highscore = require("src/client/algebra/Highscore");
+let HighscoreDialog = require("src/client/algebra/HighscoreDialog");
+let UI  = require("src/client/algebra/UI");
+let SlideDialog  = require("src/client/algebra/SlideDialog");
 
 let GridTiles = require("src/client/algebra/GridTiles");
 
@@ -36,28 +45,37 @@ let M = {
     create({
         gameStage,
         resources,
-        rows=10,
-        cols=10,
-        tileSize=30,
+        rows=6,
+        cols=9,
+        tileSize=40,
         tileSpace=1,
         x, y,
         seconds=0.4,
         stretch=.90,
-        alpha=0.9,
+        alpha=0.5,
 
         onGameOver=()=>{},
     } = {}) {
+        let CharSprites = require("src/client/algebra/MonsterSprites").new();
+        let charSprites = CharSprites.getConstructors(resources);
+
         let {randomTexture} = GridTiles;
         let tile1 = randomTexture(PIXI.loader.resources);
 
         let tileMap = (x, y) => {
             return tile1;
         }
+        let highscore = Highscore.new({
+            name: "snake",
+            length: 5,
+        });
         let self = {
+            highscore,
             gridArgs: {
                 x, y, rows, cols, tileSize, tileSpace, tileMap,
                 seconds, stretch, interactive: true, alpha,
             },
+            charSprites,
             gameStage,
             resources,
             actions: Actions.new({throttle: 10, bufferSize: 1}),
@@ -132,25 +150,17 @@ let M = {
             let head = grid.spriteAt(poss[0]);
             let sprite = grid.spriteAt(newpos);
 
-            if (sprite && self.sprites.indexOf(sprite) >= 0) {
-                console.log("game over");
-                self.actions.stop();
-                self.gameLoop.stop();
-                self.sprites.forEach(async s => {
-                    await Util.sleep(Util.randomInt(100, 300));
-                    Anima.fadeAway(s);
-                });
-                M.createGameOverMenu(self);
-                return;
-            }
-
+            let gameOver = sprite && self.sprites.indexOf(sprite) >= 0;
             if (sprite && self.sprites.indexOf(sprite) < 0) {
+                self.textScore.value++;
                 self.grow++;
                 Anima.fadeAway(sprite);
-
-                M.randomInsert(self, Util.randomInt(1,2));
+                M.randomInsert(self, Util.randomInt(1,1));
+                if (Math.random() < 0.5)
+                    Sound.play("mons1")
+                else
+                    Sound.play("mons2")
             }
-
 
             poss.unshift(newpos);
             let lastPos;
@@ -174,15 +184,37 @@ let M = {
                 });
             });
             await Promise.all(ps);
-            if (self.grow > 0) {
-                self.grow--;
-                let sprite = PixiUtil.roundedRect({
-                    color: 0x00d0dd,
-                    alpha: 0.8,
-                    radius: 15,
-                    width: grid.tileWidth,
-                    height: grid.tileHeight,
+            if (gameOver) {
+                Sound.play("meh");
+                self.actions.stop();
+                self.gameLoop.stop();
+                self.sprites.forEach(async s => {
+                    setTimeout(function() {
+                        Anima.fadeAway(s);
+                    }, Math.random()*500);
                 });
+                let score = self.textScore.value;
+                if (score > 0 && self.highscore.isHighscore(score)) {
+                    self.highscore.addEntry({
+                        score, 
+                    });
+                }
+                M.createGameOverMenu(self);
+                return;
+            } else if (self.grow > 0) {
+                self.grow--;
+                sprite = new PIXI.Sprite(sprite.texture);
+                if (self.sprites.length > 2) {
+                    Util.last(self.sprites).tint = 0x44ff00;
+                }
+                sprite.tint = 0xff0000;
+                //let sprite = PixiUtil.roundedRect({
+                //    color: 0x00d0dd,
+                //    alpha: 0.8,
+                //    radius: 15,
+                //    width: grid.tileWidth,
+                //    height: grid.tileHeight,
+                //});
                 if (lastPos) {
                     grid.setSprite({sprite, x: lastPos.x, y: lastPos.y});
                     self.sprites.push(sprite);
@@ -240,6 +272,67 @@ let M = {
         return points;
     },
 
+    setupHelpDialog(self) {
+        let {gameStage} = self;
+        gameStage.showHelp = () => {
+            gameStage.hideMenuBar();
+            self.textScore.visible = false;
+            M.pause(self);
+            let ui = UI.new();
+            let {
+                img,
+                fill, size, map, center, centerX, left, top, right, bottom,
+                row, col, textBig, text, textSmall, minWidth, fillX,
+                and, btn,slide, root, btnImg,
+            } = ui.funcs();
+
+            let path = "static/images/help/snake/";
+            let videoSize = {
+                width: 220,
+                height: 150,
+            }
+            let videos = {
+                "controls": PixiUtil.loadVideo(path+"controls.mp4", videoSize),
+                "gameplay": PixiUtil.loadVideo(path+"gameplay.mp4", videoSize),
+            }
+            let slideDialog = SlideDialog.new({
+                title: "Help",
+                items: [
+                    ui.build(_=> row(
+                        videos.controls,
+                        text(`
+                            |Controls:
+                            |Use the ⇦ , ⇨, ⇩, and ⇧ arrow keys 
+                            |move the head or lead horizontally. 
+                            |Alternatively, 
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.gameplay,
+                        text(`
+                            |Gameplay:
+                            |Collect as much
+                            |as item, the game ends
+                            |when the head or lead
+                            |comes in contact with the
+                            |collectd items.
+                            `),
+                    )),
+                ],
+                closed: () => {
+                    M.resume(self);
+                    for (let [_, vid] of Object.entries(videos))
+                        vid.destroy(true);
+                    gameStage.showMenuBar();
+                    self.textScore.visible = true;
+                }
+            });
+            gameStage.addUI(slideDialog);
+            Table.Align.center(slideDialog);
+            Anima.fade(slideDialog, {start: 0, end: 1});
+        }
+    },
+
     newGame(self) {
         self.actions.start();
         M.createGrid(self);
@@ -249,12 +342,6 @@ let M = {
         M.randomInsert(self, 2);
         M.createPlayMenu(self);
         self.grow = 0;
-
-        //self.gameStage.addUI(self.table.grid);
-        //Layout.belowOf(
-        //    {inside: true, align: "right"},
-        //    self.gameStage.ui, self.table.grid
-        //);
 
         let {left, right, up, down} = self.keys;
         self.dir =
@@ -278,7 +365,22 @@ let M = {
             await M.move(self);
         }
         self.gameLoop = Util.loop(fn);
-        //ticker.add(fn);
+        M.setupTextScore(self);
+        M.setupHelpDialog(self);
+    },
+
+    setupTextScore(self) {
+        let fn = Table.Align.funcs;
+        let text = TextProp.new({
+            label: "score",
+            val: 0,
+        });
+        self.gameStage.addChild(text);
+        Table.Align.apply(text, self.grid, Util.compose(
+            fn.left,
+            fn.bottom,
+        ), {outsideY: true});
+        self.textScore = text;
     },
 
     createGrid(self) {
@@ -297,6 +399,10 @@ let M = {
     },
 
     stop(self) {
+        if (self.textScore) {
+            self.textScore.destroy();
+            self.textScore = null;
+        }
         M.unlistenKeys(self);
         if (self.grid)
             self.grid.destroy({children: true});
@@ -324,27 +430,24 @@ let M = {
                 gameStage.showMenuBar();
                 M.newGame(self);
             },
-            "Help/Instructions": ()=>{
+            "Highscore": ()=>{
                 Anima.slideOut(menu, {fade: 1});
-                SlideContent.dialog({
-                    title: "Help",
-                    content: [
-                        "Controls:",
-                        " Use the arrow keys to control the snake.",
-                        "",
-                        "Gameplay:",
-                        " ... Just move around and eat stuff without point.",
-                    ].join("\n"),
-                    buttons: {
-                        ["close"]: async dialog => {
+                let hsdialog = HighscoreDialog.new({
+                    data: self.highscore.data,
+                    button: {
+                        fontSize: 18,
+                        text: "back",
+                        tap: async () => {
                             Layout.center({}, menu);
                             Anima.slideIn(menu, {fade: 1});
-                            await Anima.slideOut(dialog, {fade: 1});
-                            dialog.destroy(true);
+                            await Anima.slideOut(hsdialog, {fade: 1});
+                            hsdialog.destroy(true);
                         },
                     },
-                    parent: gameStage.ui,
                 });
+                Anima.fade(hsdialog, {end: 1, start: 0});
+                gameStage.add(hsdialog);
+                Table.Align.center(hsdialog);
             },
             "Exit": ()=>{
                 gameStage.exitModule();
@@ -394,7 +497,7 @@ let M = {
 
     randomize(self) {
         let sprites = [];
-        let len = Util.randomInt(5,8);
+        let len = Util.randomInt(1,3);
 
         let {grid, algebra} = self;
         let n = Math.floor(grid.cols/2);
@@ -402,13 +505,21 @@ let M = {
         Util.shuffle(points);
         let pos = points[0];
         for (let i = 0; i < len; i++) {
-            let sprite = PixiUtil.roundedRect({
-                color: 0x00d0dd,
-                radius: 15,
-                alpha: 0.8,
-                width: grid.tileWidth,
-                height: grid.tileHeight,
-            });
+            //let sprite = PixiUtil.roundedRect({
+            //    color: 0x00d0dd,
+            //    radius: 15,
+            //    alpha: 0.8,
+            //    width: grid.tileWidth,
+            //    height: grid.tileHeight,
+            //});
+            let sprite;
+            if (i == 0) {
+                let [fn] = Util.randomSelect(self.charSprites);
+                sprite = fn();
+            } else {
+                sprite = algebra.randomSprite();
+                sprite.tint = 0x00ff00;
+            }
             grid.setSprite({sprite, x: pos.x, y: pos.y});
             sprites.push(sprite);
         }
@@ -425,7 +536,6 @@ let M = {
         for (let n = 0; n < Math.min(points.length, size); n++) {
             let {x, y} = points[n];
             let sprite = algebra.randomSprite();
-            console.log(x, y);
             grid.setSprite({x, y, sprite});
             ps.push(
                 Anima.scale(sprite, { start: 0.8, seconds: 0.2})
@@ -456,6 +566,5 @@ let M = {
 
 M.new = Util.constructor(M);
 module.exports = M;
-
 
 
