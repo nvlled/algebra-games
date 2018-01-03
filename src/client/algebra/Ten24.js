@@ -16,7 +16,14 @@ let RotatedArray = require("src/client/algebra/RotatedArray");
 let SlideContent = require("src/client/algebra/SlideContent");
 let PIXI = require("src/client/pixi");
 let GraphicTable = require("src/client/algebra/GraphicTable");
+let Table = require("src/client/algebra/Table");
+let TextProp = require("src/client/algebra/TextProp");
+let InputDialog = require("src/client/algebra/InputDialog");
+let Highscore = require("src/client/algebra/Highscore");
+let HighscoreDialog = require("src/client/algebra/HighscoreDialog");
 let Sound = require("src/client/algebra/Sound");
+let UI  = require("src/client/algebra/UI");
+let SlideDialog  = require("src/client/algebra/SlideDialog");
 
 let Backgrounds = require("src/client/algebra/Backgrounds");
 let GridTiles = require("src/client/algebra/GridTiles");
@@ -48,8 +55,8 @@ let M = {
         resources,
         rows=4,
         cols=4,
-        tileSize=60,
-        tileSpace,
+        tileSize=66,
+        tileSpace=3,
         x, y,
         speed=200,
         seconds=0.3,
@@ -58,8 +65,13 @@ let M = {
         gameStage.setBackground(images.background);
 
         let tileMap = _ => PIXI.Texture.from(images.tile);
+        let highscore = Highscore.new({
+            name: "ten24",
+            length: 5,
+        });
 
         let self = {
+            highscore,
             gridArgs: {
                 x, y, rows, cols,
                 tileSize, tileSpace,
@@ -211,6 +223,8 @@ let M = {
                 if (!sprite3) 
                     continue;
 
+                self.textScore.value += parseInt(algebra.getElem(sprite3));
+
                 gameWin = gameWin || algebra.getElem(sprite3) == identity;
 
                 let p  = rarr.translate(x,y);
@@ -269,9 +283,81 @@ let M = {
         return false;
     },
 
+    setupHelpDialog(self) {
+        let {gameStage} = self;
+        gameStage.showHelp = () => {
+            gameStage.hideMenuBar();
+            M.pause(self);
+            let ui = UI.new();
+            let {
+                img,
+                fill, size, map, center, centerX, left, top, right, bottom,
+                row, col, textBig, text, textSmall, minWidth, fillX,
+                and, btn,slide, root, btnImg,
+            } = ui.funcs();
+
+            let path = "static/images/help/ten24/";
+            let videoSize = {
+                width: 220,
+                height: 150,
+            }
+            let videos = {
+                "controls": PixiUtil.loadVideo(path+"controls.mp4", videoSize),
+                "gameplay": PixiUtil.loadVideo(path+"gameplay.mp4", videoSize),
+                "gameover": PixiUtil.loadVideo(path+"gameover.mp4", videoSize),
+            }
+            let slideDialog = SlideDialog.new({
+                title: "Help",
+                items: [
+                    ui.build(_=> row(
+                        videos.controls,
+                        text(`
+                            |Controls:
+                            |Use the ⇦ , ⇨, ⇩, and ⇧ arrow keys 
+                            |move block horizontally. 
+                            |Alternatively, Drag the grid 
+                            |in the direction of choice.
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.gameplay,
+                        text(`
+                            |Gameplay:
+                            |The game is based on 2048, where 
+                            |same elements combine to 
+                            |form higher elements, but with 
+                            |characters instead of numbers.
+                            |Refer to the table which 
+                            |combinations to take.
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.gameover,
+                        text(`
+                            |Win or lose condition:
+                            |The game ends in defeat when 
+                            |the grid is full and 
+                            |there are no more moves 
+                            |available. The game wins when 
+                            |the last element is reached.
+                            `),
+                    )),
+                ],
+                closed: () => {
+                    M.resume(self);
+                    for (let [_, vid] of Object.entries(videos))
+                        vid.destroy(true);
+                    gameStage.showMenuBar();
+                }
+            });
+            gameStage.addUI(slideDialog);
+            Table.Align.center(slideDialog);
+            Anima.fade(slideDialog, {start: 0, end: 1});
+        }
+    },
+
     newGame(self) {
         M.listenKeys(self);
-        M.createPlayMenu(self);
 
         let {gameStage} = self;
         let grid = self.grid = Grid.new(self.gridArgs);
@@ -279,6 +365,7 @@ let M = {
         Layout.centerOf({}, gameStage.world, grid);
         grid.clearSprites();
 
+        M.setupTextScore(self);
         M.setupGridHandlers(self);
         grid.setInteractive(true);
 
@@ -287,6 +374,23 @@ let M = {
 
         self.actions.start();
         self.randomInsert(3);
+
+        M.createPlayMenu(self);
+        M.setupHelpDialog(self);
+    },
+
+    setupTextScore(self) {
+        let fn = Table.Align.funcs;
+        let text = TextProp.new({
+            label: "score",
+            value: 0,
+        });
+        self.gameStage.addChild(text);
+        Table.Align.apply(text, self.grid, Util.compose(
+            fn.bottom,
+            fn.left,
+        ), {outsideY: true});
+        self.textScore = text;
     },
 
     setupGridHandlers(self) {
@@ -349,28 +453,24 @@ let M = {
                 gameStage.showMenuBar();
                 M.newGame(self);
             },
-            "Help": ()=>{
+            "Highscore": ()=>{
                 Anima.slideOut(menu, {fade: 1});
-                SlideContent.dialog({
-                    title: "Help",
-                    content: [
-                        "Controls:",
-                        "* Use the arrow keys to move the grid.",
-                        "* You can also perform the same operations by touch-dragging",
-                        "",
-                        "Gameplay:",
-                        " The gameplay is similar to 2048. Use the table as a reference on what combinations to take.",
-                    ].join("\n"),
-                    buttons: {
-                        ["close"]: async dialog => {
+                let hsdialog = HighscoreDialog.new({
+                    data: self.highscore.data,
+                    button: {
+                        fontSize: 18,
+                        text: "back",
+                        tap: async () => {
                             Layout.center({}, menu);
                             Anima.slideIn(menu, {fade: 1});
-                            await Anima.slideOut(dialog, {fade: 1});
-                            dialog.destroy(true);
+                            await Anima.slideOut(hsdialog, {fade: 1});
+                            hsdialog.destroy(true);
                         },
                     },
-                    parent: gameStage.ui,
                 });
+                Anima.fade(hsdialog, {end: 1, start: 0});
+                gameStage.add(hsdialog);
+                Table.Align.center(hsdialog);
             },
             "Exit": ()=>{
                 gameStage.exitModule();
@@ -495,13 +595,40 @@ let M = {
         self.table.grid.destroy({children: true});
         M.unlistenKeys(self);
         self.actions.stop();
+        if (self.textScore) {
+            self.textScore.destroy();
+            self.textScore = null;
+        }
     },
 
     gameOver(self) {
         self.running = false;
         self.actions.stop();
         M.unlistenKeys(self);
-        M.createGameOverMenu(self);
+        let score = self.textScore.value;
+        if (self.highscore.isHighscore(score)) {
+            let dialog = InputDialog.new({
+                textPrompt: "Highscore: enter your name",
+                buttonPrompt: "confirm",
+                size: 8,
+                tap() {
+                    let name = dialog.getValue();
+                    if (self.highscore.isHighscore(score)) {
+                        self.highscore.addEntry({
+                            name,
+                            score,
+                        });
+                    }
+                    Anima.fade(dialog, {end: 0});
+                    M.createGameOverMenu(self);
+                }
+            });
+            Anima.fade(dialog, {end: 1, start: 0});
+            self.gameStage.add(dialog);
+            Table.Align.center(dialog);
+        } else {
+            M.createGameOverMenu(self);
+        }
     },
 
     resume(self) {
@@ -595,5 +722,7 @@ let M = {
     },
 
 }
+
 M.new = Util.constructor(M);
 module.exports = M;
+

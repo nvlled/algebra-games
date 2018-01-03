@@ -16,11 +16,13 @@ let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let GraphicTable = require("src/client/algebra/GraphicTable");
 let EasingFn = require("src/client/algebra/EasingFn");
 let SlideContent = require("src/client/algebra/SlideContent");
-
-
-
-
+let Table = require("src/client/algebra/Table");
+let Highscore = require("src/client/algebra/Highscore");
+let HighscoreDialog = require("src/client/algebra/HighscoreDialog");
+let InputDialog = require("src/client/algebra/InputDialog");
 let Sound = require("src/client/algebra/Sound");
+let UI  = require("src/client/algebra/UI");
+let SlideDialog  = require("src/client/algebra/SlideDialog");
 
 let Backgrounds = require("src/client/algebra/Backgrounds");
 let GridTiles = require("src/client/algebra/GridTiles");
@@ -34,7 +36,7 @@ let images = {
     background5: Backgrounds.dir+"/bg5.jpg",
 }
 
-// TODO: add vertical clearing
+// TODO: Fix gameover bug
 
 let startSpeed = 3000;
 let speedDiff = 100;
@@ -143,7 +145,13 @@ let M = {
                 alpha,
         }
 
+        let highscore = Highscore.new({
+            name: "drop",
+            length: 5,
+        });
+
         let self = {
+            highscore,
             gridArgs,
             algebra: galge,
             keys: {
@@ -211,10 +219,6 @@ let M = {
     },
 
     gameOver(self) {
-        self.running = false;
-        self.actions.stop();
-        M.unlistenKeys(self);
-        M.createGameOverMenu(self);
     },
 
     startDescension(self, force=false) {
@@ -253,7 +257,38 @@ let M = {
                 }
 
                 if (gameover) {
-                    M.gameOver(self);
+                    let {gameStage} = self;
+                    self.running = false;
+                    self.actions.stop();
+                    M.unlistenKeys(self);
+                    let score = self.info.ref.score;
+                    let recorded = false;
+                    if (self.highscore.isHighscore(score)) {
+                        let dialog = InputDialog.new({
+                            textPrompt: "Highscore, enter your name",
+                            buttonPrompt: "confirm",
+                            size: 8,
+                            tap() {
+                                if (recorded)
+                                    return;
+                                recorded = true;
+                                let name = dialog.getValue();
+                                if (self.highscore.isHighscore(score)) {
+                                    self.highscore.addEntry({
+                                        name,
+                                        score,
+                                    });
+                                }
+                                Anima.fade(dialog, {end: 0});
+                                M.createGameOverMenu(self);
+                            }
+                        });
+                        Anima.fade(dialog, {end: 1, start: 0});
+                        gameStage.add(dialog);
+                        Table.Align.center(dialog);
+                    } else {
+                        M.createGameOverMenu(self);
+                    }
                 }
             }
 
@@ -329,10 +364,10 @@ let M = {
                 let newSprite = algebra.applySprites(...row);
                 if (newSprite && algebra.getElem(newSprite) != algebra.getIdentity()) {
                     let insertPos = grid.spritePos(row[0]);
-                    grid.setSprite({sprite: newSprite, x: insertPos.x, y: insertPos.y});
-                    newSprite.alpha = 0;
-                    Anima.fade(newSprite, {end: 1});
-                    paths.push(insertPos);
+                    //grid.setSprite({sprite: newSprite, x: insertPos.x, y: insertPos.y});
+                    //newSprite.alpha = 0;
+                    //Anima.fade(newSprite, {end: 1});
+                    //paths.push(insertPos);
                 }
             }
             paths = paths.concat(await M.shift(self));
@@ -394,7 +429,92 @@ let M = {
     stopDescension(self) {
     },
 
+    setupHelpDialog(self) {
+        let {gameStage} = self;
+        gameStage.showHelp = () => {
+            gameStage.hideMenuBar();
+            M.pause(self);
+            let ui = UI.new();
+            let {
+                img,
+                fill, size, map, center, centerX, left, top, right, bottom,
+                row, col, textBig, text, textSmall, minWidth, fillX,
+                and, btn,slide, root, btnImg,
+            } = ui.funcs();
+
+            let path = "static/images/help/drop/";
+            let videoSize = {
+                width: 150,
+                height: 200,
+            }
+            let videos = {
+                "move": PixiUtil.loadVideo(path+"move-x.mp4", videoSize),
+                "rotate": PixiUtil.loadVideo(path+"rotate.mp4", videoSize),
+                "drop": PixiUtil.loadVideo(path+"drop.mp4", videoSize),
+                "clear": PixiUtil.loadVideo(path+"clear.mp4", videoSize),
+                "gameover": PixiUtil.loadVideo(path+"gameover.mp4", videoSize),
+            }
+            let slideDialog = SlideDialog.new({
+                title: "Help",
+                items: [
+                    ui.build(_=> row(
+                        videos.move,
+                        text(`
+                            |Controls:
+                            |Use the ⇦ and ⇨ arrow keys move 
+                            |block horizontally. Alternatively, 
+                            |drag the grid horizontally.
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.rotate,
+                        text(`
+                            |Controls:
+                            |Use the ⇧ to rotate the block.
+                            |Alternatively, drag the grid upwards.
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.drop,
+                        text(`
+                            |Controls:
+                            |Use the ⇩ to release or drop the block.
+                            |Alternatively, drag the grid downwards.
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.clear,
+                        text(`
+                            |Goal:
+                            |Prevent the board from filling up.
+                            |Clear pieces by aligning them according
+                            |to the table or reference.
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.gameover,
+                        text(`
+                            |End game:
+                            |The game ends when the pieces 
+                            |reach the block spawn point.
+                            `),
+                    )),
+                ],
+                closed: () => {
+                    M.resume(self);
+                    for (let [_, vid] of Object.entries(videos))
+                        vid.destroy(true);
+                    gameStage.showMenuBar();
+                }
+            });
+            gameStage.addUI(slideDialog);
+            Table.Align.center(slideDialog);
+            Anima.fade(slideDialog, {start: 0, end: 1});
+        }
+    },
+
     async newGame(self) {
+        M.setupHelpDialog(self);
         M.createPlayMenu(self);
         M.createGrid(self);
         self.actions.start();
@@ -408,6 +528,7 @@ let M = {
         self.gameStage.changeBackground(Backgrounds.randomName());
 
         let table = self.table = GraphicTable.new(self.algebra, {
+            hideLastCol: true,
             tileSize: 25,
             tileSpace: 0.1,
             stretch: 0.8,
@@ -466,6 +587,7 @@ let M = {
 
     async start(self) {
         let {gameStage} = self;
+
         let menu = gameStage.createMenu({
             title: "Drop",
             showBg: false,
@@ -478,36 +600,25 @@ let M = {
                 gameStage.showMenuBar();
                 M.newGame(self);
             },
-            "Help": ()=>{
+            "Highscore": ()=>{
                 Anima.slideOut(menu, {fade: 1});
-                SlideContent.dialog({
-                    title: "Help",
-                    content: [
-                        "Controls:",
-                        "* Use the left and right arrows keys to move the block vertically",
-                        "* Use the up arrow to rotate",
-                        "* Use the down arrow to drop the block",
-                        "* You can also perform the same operations by touch-dragging",
-                        "",
-                        "Gameplay:",
-                        " Use the table as a reference for clearing the blocks.",
-                    ].join("\n"),
-                    buttons: {
-                        ["close"]: async dialog => {
+                let hsdialog = HighscoreDialog.new({
+                    desc: true,
+                    data: self.highscore.data,
+                    button: {
+                        fontSize: 18,
+                        text: "back",
+                        tap: async () => {
                             Layout.center({}, menu);
                             Anima.slideIn(menu, {fade: 1});
-                            await Anima.slideOut(dialog, {fade: 1});
-                            dialog.destroy(true);
+                            await Anima.slideOut(hsdialog, {fade: 1});
+                            hsdialog.destroy(true);
                         },
                     },
-                    parent: gameStage.ui,
-                    textStyle: {
-                        fontSize: 25,
-                    },
-                    buttonStyle: {
-                        fontSize: 15,
-                    },
                 });
+                Anima.fade(hsdialog, {end: 1, start: 0});
+                gameStage.add(hsdialog);
+                Table.Align.center(hsdialog);
             },
             "Exit": ()=>{
                 gameStage.exitModule();

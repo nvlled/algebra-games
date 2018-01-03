@@ -43,6 +43,18 @@ let M = {
         sprite.y = (container.height - sprite.height)/2;
     },
 
+    loadVideo(path, {loop=true,autoplay=true, width, height}) {
+        var texture = PIXI.Texture.fromVideo(path);
+        var videoSprite = new PIXI.Sprite(texture);
+        let source = texture.baseTexture.source;
+        source.loop = loop;
+        source.autoplay = autoplay;
+        videoSprite.width = width;
+        videoSprite.height = height;
+
+        return videoSprite;
+    },
+
     line({g, container, p1, p2, lineWidth=1, color=0x333333, alpha=1}={}) {
         if (!g)
             g = new PIXI.Graphics();
@@ -56,6 +68,93 @@ let M = {
         return g;
     },
 
+    topLeft(sprite) {
+        let a = sprite.anchor;
+        if (!a) {
+            return {
+                x: sprite.x,
+                y: sprite.y,
+            }
+        }
+        return {
+            x: sprite.x - a.x*sprite.width,
+            y: sprite.y - a.y*sprite.height,
+        }
+    },
+
+    centerPos(sprite) {
+        let a = sprite.anchor;
+        if (!a) {
+            return {
+                x: sprite.x,
+                y: sprite.y,
+            }
+        }
+        return {
+            x: sprite.x - a.x*sprite.width,
+            y: sprite.y - a.y*sprite.height,
+        }
+    },
+
+    setTopLeft(sprite, {x, y}) {
+        let a = sprite.anchor;
+        if (!a) {
+            sprite.x = x;
+            sprite.y = y;
+        }
+        sprite.x = x + a.x*sprite.width;
+        sprite.y = y + a.y*sprite.height;
+    },
+
+    fixSize(sprite) {
+        let {width, height} = sprite;
+        return new Proxy(sprite, {
+            get(target, name) {
+                if (name == 'width')
+                    return width;
+                else if (name == 'height')
+                    return height;
+                return target[name];
+            }
+        });
+    },
+
+    overlay(frontSprite, args={}) {
+        let {
+            radius,
+            backSprite,
+            margin=0,
+            marginX=margin,
+            marginY=margin,
+            parent,
+        } = args;
+
+        if (!backSprite) {
+            backSprite = M.roundedRect({
+                radius,
+                alpha: 0.8,
+                width: frontSprite.width+marginX,
+                height: frontSprite.height+marginY,
+            });
+        }
+        if (!parent)
+            parent = frontSprite.parent;
+        if (parent) {
+            try {
+                let i = parent.getChildIndex(frontSprite);
+                parent.addChildAt(backSprite, i);
+            } catch (e) {
+                parent.addChild(backSprite);
+            }
+        }
+
+        //frontSprite.x += margin/2;
+        //frontSprite.y += margin/2;
+        let tl = M.topLeft(frontSprite);
+        M.setTopLeft(backSprite, {x: tl.x-marginX/2, y: tl.y-marginY/2});
+        return backSprite;
+    },
+
     roundedRect({
         x=0, y=0, width, height,
         radius=12, color=0x222222, alpha=1, renderer
@@ -65,7 +164,6 @@ let M = {
 
         let sprite = new PIXI.Sprite();
         sprite.draw = ({width, height, color}) => {
-            console.log("Y");
             let g = new PIXI.Graphics();
             g.clear();
             g.beginFill(color, alpha);

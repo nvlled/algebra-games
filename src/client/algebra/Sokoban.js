@@ -18,6 +18,9 @@ let AniSprite = require("src/client/algebra/AniSprite");
 let SlideContent = require("src/client/algebra/SlideContent");
 let SetUtil = require("src/client/algebra/SetUtil");
 let PixiUtil = require("src/client/algebra/PixiUtil");
+let Table  = require("src/client/algebra/Table");
+let UI  = require("src/client/algebra/UI");
+let SlideDialog  = require("src/client/algebra/SlideDialog");
 
 let CoinSprites = require("src/client/algebra/CoinSprites");
 let Backgrounds = require("src/client/algebra/Backgrounds");
@@ -500,6 +503,74 @@ let M = {
         gameStage.hideMenuBar();
     },
 
+    setupHelpDialog(self) {
+        let {gameStage} = self;
+        gameStage.showHelp = () => {
+            gameStage.hideMenuBar();
+            M.pause(self);
+            let ui = UI.new();
+            let {
+                img,
+                fill, size, map, center, centerX, left, top, right, bottom,
+                row, col, textBig, text, textSmall, minWidth, fillX,
+                and, btn,slide, root, btnImg,
+            } = ui.funcs();
+
+            let path = "static/images/help/sokoban/";
+            let videoSize = {
+                width: 220,
+                height: 150,
+            }
+            let videos = {
+                "controls": PixiUtil.loadVideo(path+"controls.mp4", videoSize),
+                "gameplay": PixiUtil.loadVideo(path+"gameplay.mp4", videoSize),
+                "fail": PixiUtil.loadVideo(path+"fail.mp4", videoSize),
+            }
+            let slideDialog = SlideDialog.new({
+                title: "Help",
+                items: [
+                    ui.build(_=> row(
+                        videos.controls,
+                        text(`
+                            |Controls:
+                            |Use the ⇦ , ⇨, ⇩, and ⇧ arrow keys 
+                            |to control the character.
+                            |Move against a vase to push them. 
+                            |You cannot pull vases.
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.gameplay,
+                        text(`
+                            |Goal:
+                            |Move all the vase into their destination
+                            |(the green patches of grass).
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.fail,
+                        text(`
+                            |Stuck:
+                            |Avoid pushing the vases in the corner.
+                            |If this happens, then the level can
+                            |no longer be completed and needs
+                            |to be restarted.
+                            `),
+                    )),
+                ],
+                closed: () => {
+                    M.resume(self);
+                    for (let [_, vid] of Object.entries(videos))
+                        vid.destroy(true);
+                    gameStage.showMenuBar();
+                }
+            });
+            gameStage.addUI(slideDialog);
+            Table.Align.center(slideDialog);
+            Anima.fade(slideDialog, {start: 0, end: 1});
+        }
+    },
+
     newGame(self, level) {
         self.currentLevel = level;
         if (self.grid) {
@@ -517,6 +588,7 @@ let M = {
         gameStage.watch(self.player);
         M.createPlayMenu(self);
         gameStage.showMenuBar();
+        M.setupHelpDialog(self);
     },
 
     start(self) {
@@ -609,28 +681,6 @@ let M = {
             "New Game": ()=>{
                 gameStage.showMenuBar();
                 M.createLevelMenu(self);
-            },
-            "Help": ()=>{
-                Anima.slideOut(menu, {fade: 1});
-                SlideContent.dialog({
-                    title: "Help",
-                    content: [
-                        "Controls:",
-                        " Use the arrow keys to control the character.",
-                        "",
-                        "Gameplay:",
-                        " Push all the pots on the grasses to complete a level."
-                    ].join("\n"),
-                    buttons: {
-                        ["close"]: async dialog => {
-                            Layout.center({}, menu);
-                            Anima.slideIn(menu, {fade: 1});
-                            await Anima.slideOut(dialog, {fade: 1});
-                            dialog.destroy(true);
-                        },
-                    },
-                    parent: gameStage.ui,
-                });
             },
             "Exit": ()=>{
                 gameStage.exitModule();

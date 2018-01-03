@@ -11,6 +11,13 @@ Util.extractKeys = function(obj, ...keys) {
     return m;
 }
 
+Util.trimIndent = function(str, ch="|") {
+    return str.split("\n").map(line => {
+        let i = line.indexOf(ch);
+        return line.slice(i+1);
+    }).join("\n");
+}
+
 // underscore's extend
 Util.extend = function(obj, ...sources) {
     if (!obj)
@@ -28,9 +35,14 @@ Util.extend = function(obj, ...sources) {
 }
 
 Util.wrap = function(obj, ext) {
+    //let m = Util.extend({}, ext);
+    //Object.setPrototypeOf(m, obj);
+    //return m;
     let m = Util.extend({}, ext);
-    Object.setPrototypeOf(m, obj);
-    return m;
+    let proto = obj.__proto__;
+    Object.setPrototypeOf(m, proto);
+    Object.setPrototypeOf(obj, m);
+    return obj;
 }
 
 Util.wrapAll = function(obj, ...exts) {
@@ -71,7 +83,10 @@ Util.loop = function(fn) {
         stop() {
             running = false;
             cancelAnimationFrame(rf);
-        }
+        },
+        isRunning() {
+            return running;
+        },
     }
     obj.start();
     return obj;
@@ -128,12 +143,16 @@ Util.prototypify = function(mod, shouldWrap = _=>true) {
     return mod_;
 }
 
+// compose(f,g,h)(x) == f(g(h(x)))
 Util.compose = function(...fs) {
+    fs.reverse();
     return function(...args) {
-        let result = args
+        let result = args[0];
         for (let f of fs) {
             if (typeof f == "function")
-                result = f(...result);
+                result = f(result);
+            //else
+                //console.warn("not a function:", f);
         }
         return result;
     }
@@ -211,23 +230,77 @@ Util.or = function(...args) {
     return null;
 }
 
-Util.constructor = function(module) {
+Util.constructor = function(module, proxy) {
     if (typeof module.create != "function")
         throw "invalid module, need create function";
     if (! module.Proto)
         module.Proto = Util.prototypify(module);
     return function(...args) {
-        return Util.wrap(module.create(...args), module.Proto);
+        let obj = Util.wrap(module.create(...args), module.Proto);
+        if (proxy)
+            obj = new Proxy(obj, proxy);
+        return obj;
+    }
+}
+
+Util.proximate = function(fn) {
+    let getter = fn => ({get: fn});
+    let setter = fn => ({set: fn});
+
+    let forward = propName => {
+        return {
+            get(self) {
+                return self[propName];
+            },
+            set(self, val) {
+                self[propName] = val;
+            },
+        }
+    }
+
+    let props = fn({getter, setter, forward});
+
+    if (!props)
+        return null;
+
+    let getters = {};
+    let setters = {};
+
+    for (let [name, prop] of Object.entries(props)) {
+        if (prop.get)
+            getters[name] = prop.get;
+        if (prop.set)
+            setters[name] = prop.set;
+    }
+
+    return {
+        get(self, name) {
+            let fn = getters[name];
+            if (fn && getters.hasOwnProperty(name)) {
+                return fn(self);
+            }
+            return self[name];
+        },
+        set(self, name, val) {
+            let fn = setters[name];
+            if (fn)
+                fn(self, val);
+            else
+                self[name] = val;
+            return true;
+        },
     }
 }
 
 Util.rightpad = function(str, n, ch=" ") {
+    str = str+"";
     if (str.length > n)
         return str;
     return str + ch.repeat(n-str.length);
 }
 
 Util.leftpad = function(str, n, ch=" ") {
+    str = str+"";
     if (str.length > n)
         return str;
     return ch.repeat(n-str.length) + str;
@@ -412,6 +485,8 @@ Util.randomColor = function() {
     let exp =  (b, e) => Math.pow(b, e);
     return r*exp(256, 2) + g*exp(256, 1) + b*exp(256, 0);
 }
+
+Util.noop = function() { }
 
 Util.nulla = function(arr) {
     if (arr == null)

@@ -16,7 +16,15 @@ let Keymap = require("src/client/algebra/Keymap");
 let SlideContent = require("src/client/algebra/SlideContent");
 let PixiUtil = require("src/client/algebra/PixiUtil");
 let PIXI = require("src/client/pixi");
+let Bouton = require("src/client/algebra/Bouton");
+let Table = require("src/client/algebra/Table");
+let TextProp = require("src/client/algebra/TextProp");
+let InputDialog = require("src/client/algebra/InputDialog");
+let Highscore = require("src/client/algebra/Highscore");
+let HighscoreDialog = require("src/client/algebra/HighscoreDialog");
 let Sound = require("src/client/algebra/Sound");
+let UI  = require("src/client/algebra/UI");
+let SlideDialog  = require("src/client/algebra/SlideDialog");
 
 let Backgrounds = require("src/client/algebra/Backgrounds");
 let GridTiles = require("src/client/algebra/GridTiles");
@@ -24,6 +32,12 @@ let GridTiles = require("src/client/algebra/GridTiles");
 let images = {
     tile: GridTiles.get("ground_01.png"),
     background: Backgrounds.dir+"/industrial-background.jpg",
+}
+
+function formatTime(diff) {
+    let mins = Util.leftpad(diff.getMinutes(), 2, "0");
+    let secs = Util.leftpad(diff.getSeconds(), 2, "0");
+    return `${mins}:${secs}`;
 }
 
 let FIXED = Symbol();
@@ -85,7 +99,13 @@ let M = {
 
         let size = 6;
         let tileMap = _ => PIXI.Texture.from(images.tile);
+        let highscore = Highscore.new({
+            name: "sudoku",
+            length: 5,
+            desc: false,
+        });
         let self = {
+            highscore,
             gameStage,
             resources,
             keys: {
@@ -597,6 +617,65 @@ let M = {
         self.algebra = galge;
     },
 
+    setupHelpDialog(self) {
+        let {gameStage} = self;
+        gameStage.showHelp = () => {
+            gameStage.hideMenuBar();
+            M.pause(self);
+            let ui = UI.new();
+            let {
+                img,
+                fill, size, map, center, centerX, left, top, right, bottom,
+                row, col, textBig, text, textSmall, minWidth, fillX,
+                and, btn,slide, root, btnImg,
+            } = ui.funcs();
+
+            let path = "static/images/help/sudoku/";
+            let videoSize = {
+                width: 220,
+                height: 150,
+            }
+            let videos = {
+                "gameplay": PixiUtil.loadVideo(path+"gameplay.mp4", videoSize),
+                "conflicts": PixiUtil.loadVideo(path+"conflicts.mp4", videoSize),
+            }
+            let slideDialog = SlideDialog.new({
+                title: "Help",
+                items: [
+                    ui.build(_=> row(
+                        videos.gameplay,
+                        text(`
+                            |Controls:
+                            |Click and drag the items on the left
+                            |into the board. The items added can 
+                            |also be moved again by click and 
+                            |dragging them again.
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.conflicts,
+                        text(`
+                            |Gameplay: (slight variation on sudoku)
+                            |Complete the grid without having
+                            |a repeated item in 
+                            |any row, column or sub-block.
+                            |The highlighted tiles indicate
+                            |a repeated or conflicting item.
+                            `),
+                    )),
+                ],
+                closed: () => {
+                    M.resume(self);
+                    for (let [_, vid] of Object.entries(videos))
+                        vid.destroy(true);
+                    gameStage.showMenuBar();
+                }
+            });
+            gameStage.addUI(slideDialog);
+            Table.Align.center(slideDialog);
+            Anima.fade(slideDialog, {start: 0, end: 1});
+        }
+    },
 
     newGame(self, size=4) {
         M.init(self);
@@ -605,12 +684,35 @@ let M = {
         M.createButtons(self);
         M.checkTiles(self);
 
+        self.startTime = +new Date();
+        M.setupTextScore(self);
         M.createPlayMenu(self);
         self.gameStage.showMenuBar();
+
+        self.loop = Util.loop(_=> {
+            self.textScore.value = +new Date();
+        });
+        M.setupHelpDialog(self);
+    },
+
+    setupTextScore(self) {
+        let text = TextProp.new({
+            label: "time",
+            val: +new Date(),
+            format: val => formatTime(new Date(val - self.startTime)),
+        });
+        self.gameStage.addChild(text);
+        let fn = Table.Align.funcs;
+        Table.Align.apply(text, self.gameStage.world, Util.compose(
+            fn.centerX,
+            fn.bottom,
+        ), {outside: false, isContained: true});
+        text.y -= text.height/4;
+        self.textScore = text;
     },
 
     createButtons(self) {
-        let clearBtn = Button.create({
+        let clearBtn = Bouton.create({
             text: "clear",
             fontSize: 15,
             fgStyle: {
@@ -623,12 +725,18 @@ let M = {
         clearBtn.pointerdown = () => {
             M.clearSprites(self);
         }
-        self.gameStage.add(clearBtn);
-        Layout.belowOf({align: "right", marginY: 10}, self.grid, clearBtn);
-        self.clearBtn = clearBtn;
+        let fn = Table.Align.funcs;
+        self.grid.addChild(clearBtn);
+        Table.Align.apply(clearBtn, self.grid, Util.compose(
+            fn.bottom,
+            fn.left,
+        ), {outside: false, isContained: true, marginY: -10});
     },
 
     async gameWin(self) {
+        self.loop.stop();
+        let score = M.getScore(self);
+
         let grid = self.grid;
         Anima.fade(self.panel, {end: 0});
         let ps = [];
@@ -640,6 +748,17 @@ let M = {
         });
         await Promise.all(ps);
         M.createGameWinMenu(self);
+        if (self.highscore.isHighscore(score)) {
+            self.highscore.addEntry({
+                score, 
+                time: formatTime(new Date(score)),
+            });
+        }
+    },
+
+    getScore(self) {
+        let d = new Date() - self.startTime;
+        return d;
     },
 
     createGameWinMenu(self) {
@@ -683,23 +802,25 @@ let M = {
             "New Game": ()=>{
                 M.createSubMenu(self);
             },
-            "Help": ()=>{
+            "Highscore": ()=>{
                 Anima.slideOut(menu, {fade: 1});
-                SlideContent.dialog({
-                    title: "Help",
-                    content: [
-                        "Drag the items on the left into the grid. Each item must only occur once in a row, column or block.",
-                    ].join("\n"),
-                    buttons: {
-                        ["close"]: async dialog => {
+                let hsdialog = HighscoreDialog.new({
+                    excl: {"score":true},
+                    data: self.highscore.data,
+                    button: {
+                        fontSize: 18,
+                        text: "back",
+                        tap: async () => {
                             Layout.center({}, menu);
                             Anima.slideIn(menu, {fade: 1});
-                            await Anima.slideOut(dialog, {fade: 1});
-                            dialog.destroy(true);
+                            await Anima.slideOut(hsdialog, {fade: 1});
+                            hsdialog.destroy(true);
                         },
                     },
-                    parent: gameStage.ui,
                 });
+                Anima.fade(hsdialog, {end: 1, start: 0});
+                gameStage.add(hsdialog);
+                Table.Align.center(hsdialog);
             },
             "Exit": ()=>{
                 gameStage.exitModule();
@@ -727,7 +848,7 @@ let M = {
         let {gameStage} = self;
         gameStage.createMenu({
             hide: true,
-            title: "paused",
+            title: "",
             showBg: false,
             textStyle: {
                 fill: 0x990000,
@@ -763,6 +884,14 @@ let M = {
         if (self.clearBtn) {
             self.clearBtn.destroy({children: true});
         }
+
+        if (self.loop)
+            self.loop.stop();
+        if (self.textScore) {
+            self.textScore.destroy();
+            self.textScore = null;
+        }
+
         self.createdSprites.splice(0);
         M.unlistenKeys(self);
         self.actions.stop();

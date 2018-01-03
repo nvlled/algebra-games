@@ -16,8 +16,15 @@ let Button = require("src/client/algebra/Button");
 let SlideContent = require("src/client/algebra/SlideContent");
 let SetUtil = require("src/client/algebra/SetUtil");
 let PixiUtil = require("src/client/algebra/PixiUtil");
+let Bouton = require("src/client/algebra/Bouton");
+let Table = require("src/client/algebra/Table");
+let TextProp = require("src/client/algebra/TextProp");
+let InputDialog = require("src/client/algebra/InputDialog");
+let Highscore = require("src/client/algebra/Highscore");
+let HighscoreDialog = require("src/client/algebra/HighscoreDialog");
 let Sound = require("src/client/algebra/Sound");
-let Sound = require("src/client/algebra/Sound");
+let UI  = require("src/client/algebra/UI");
+let SlideDialog  = require("src/client/algebra/SlideDialog");
 
 let CoinSprites = require("src/client/algebra/CoinSprites");
 let Backgrounds = require("src/client/algebra/Backgrounds");
@@ -129,8 +136,13 @@ let M = {
         });
 
         let tileMap = _ => PIXI.Texture.from(images.tile);
+        let highscore = Highscore.new({
+            name: "lightsout",
+            length: 5,
+        });
 
         let self = {
+            highscore,
             gameStage,
             resources,
             gridArgs: {
@@ -169,9 +181,15 @@ let M = {
         self.grid.onTileClick = async function(pos) {
             Sound.play("cloth");
             await M.toggleAt(self, pos);
+            self.textScore.value++;
             if (M.isComplete(self)) {
-                console.log("complete");
                 M.startNoise(self);
+                let score = self.textScore.value;
+                if (score > 0 && self.highscore.isHighscore(score)) {
+                    self.highscore.addEntry({
+                        score, 
+                    });
+                }
                 self.grid.toggleInteractive(false);
                 M.createWinGame(self);
             }
@@ -190,73 +208,54 @@ let M = {
         return true;
     },
 
-    async findCandidateParameters(self, {pos, size, matchSize=true, exclude=[]}) {
-        let excludeSet = exclude instanceof Set ? exclude : new Set(exclude);
-        let shouldInclude = x => !excludeSet.has(x);
+    setupHelpDialog(self) {
+        let {gameStage} = self;
+        gameStage.showHelp = () => {
+            gameStage.hideMenuBar();
+            self.textScore.visible = false;
+            M.pause(self);
+            let ui = UI.new();
+            let {
+                img,
+                fill, size, map, center, centerX, left, top, right, bottom,
+                row, col, textBig, text, textSmall, minWidth, fillX,
+                and, btn,slide, root, btnImg,
+            } = ui.funcs();
 
-        let {grid, algebra} = self;
-
-        let result = [];
-        for (let n = 0; n < size; n++) {
-            let sprites = [];
-            for (let x = pos.x-n; x < pos.x+size-n; x++) {
-                let sprite = grid.spriteAt({x, y: pos.y});
-                if (sprite && shouldInclude(sprite))
-                    sprites.push(sprite);
+            let path = "static/images/help/lightsout/";
+            let videoSize = {
+                width: 220,
+                height: 150,
             }
-            if (!matchSize || sprites.length == size) {
-
-                if (algebra.applySprites(...sprites)) {
-                    result.push(sprites);
-                    return result;
+            let videos = {
+                "gameplay": PixiUtil.loadVideo(path+"gameplay.mp4", videoSize),
+            }
+            let slideDialog = SlideDialog.new({
+                title: "Help",
+                items: [
+                    ui.build(_=> row(
+                        videos.gameplay,
+                        text(`
+                            |Gameplay:
+                            |Click on a tile to toggle the lights
+                            |on the tile and the adjacent tiles.
+                            |Complete a level by turning off
+                            |all the lights.
+                            `),
+                    )),
+                ],
+                closed: () => {
+                    M.resume(self);
+                    for (let [_, vid] of Object.entries(videos))
+                        vid.destroy(true);
+                    gameStage.showMenuBar();
+                    self.textScore.visible = true;
                 }
-            }
+            });
+            gameStage.addUI(slideDialog);
+            Table.Align.center(slideDialog);
+            Anima.fade(slideDialog, {start: 0, end: 1});
         }
-        for (let n = 0; n < size; n++) {
-            let sprites = [];
-            for (let y = pos.y-n; y < pos.y+size-n; y++) {
-                let sprite = grid.spriteAt({y, x: pos.x});
-                if (sprite && shouldInclude(sprite))
-                    sprites.push(sprite);
-            }
-            if (!matchSize || sprites.length == size) {
-
-                if (algebra.applySprites(...sprites)) {
-                    result.push(sprites);
-                    break;
-                }
-            }
-        }
-        return result;
-    },
-
-    checkTiles(self, pos) {
-        let {grid} = self;
-        let sprite = self.grid.spriteAt(pos); 
-        if (!sprite)
-            return;
-        let row = grid.getRow(pos.y, false);
-        let col = grid.getColumn(pos.x, false);
-
-        grid.clearHighlights(row);
-        grid.clearHighlights(col);
-
-        let alg = self.algebra;
-        let elem = alg.getElem(sprite);
-        row = row.filter(pos_ => {
-            let sprite_ = grid.spriteAt(pos_);
-            return elem == alg.getElem(sprite_);
-
-        });
-        col = col.filter(pos_ => {
-            let sprite_ = grid.spriteAt(pos_);
-            return elem == alg.getElem(sprite_);
-
-        });
-        if (row.length > 1)
-            self.grid.hightlightTiles(row, 0xff0000); 
-        if (col.length > 1)
-            self.grid.hightlightTiles(col, 0xff0000); 
     },
 
     newGame(self, level=0) {
@@ -268,6 +267,24 @@ let M = {
         self.gameStage.showMenuBar();
         self.actions.start();
         M.createPlayMenu(self);
+        M.setupTextScore(self);
+
+        self.textScore.visible = false; // !!!!!!!!!!!
+        M.setupHelpDialog(self);
+    },
+
+    setupTextScore(self) {
+        let fn = Table.Align.funcs;
+        let text = TextProp.new({
+            label: "moves",
+            val: 0,
+        });
+        self.gameStage.addChild(text);
+        Table.Align.apply(text, self.grid, Util.compose(
+            fn.left,
+            fn.bottom,
+        ), {outsideY: true});
+        self.textScore = text;
     },
 
     initGrid(self) {
@@ -397,6 +414,10 @@ let M = {
     },
 
     stop(self) {
+        if (self.textScore) {
+            self.textScore.destroy();
+            self.textScore = null;
+        }
         M.unlistenKeys(self);
         if (self.grid)
             self.grid.destroy({children: true});
@@ -422,6 +443,25 @@ let M = {
                 gameStage.showMenuBar();
                 M.createLevelMenu(self);
             },
+            //"Highscore": ()=>{
+            //    Anima.slideOut(menu, {fade: 1});
+            //    let hsdialog = HighscoreDialog.new({
+            //        data: self.highscore.data,
+            //        button: {
+            //            fontSize: 18,
+            //            text: "back",
+            //            tap: async () => {
+            //                Layout.center({}, menu);
+            //                Anima.slideIn(menu, {fade: 1});
+            //                await Anima.slideOut(hsdialog, {fade: 1});
+            //                hsdialog.destroy(true);
+            //            },
+            //        },
+            //    });
+            //    Anima.fade(hsdialog, {end: 1, start: 0});
+            //    gameStage.add(hsdialog);
+            //    Table.Align.center(hsdialog);
+            //},
             "Help": ()=>{
                 Anima.slideOut(menu, {fade: 1});
                 SlideContent.dialog({
@@ -569,5 +609,7 @@ let M = {
 
 M.new = Util.constructor(M);
 module.exports = M;
+
+
 
 

@@ -22,6 +22,7 @@ let TextureSet = require("src/client/algebra/TextureSet");
 let AniSprite = require("src/client/algebra/AniSprite");
 let GameStage = require("src/client/algebra/GameStage");
 let Keymap = require("src/client/algebra/Keymap");
+let Sound = require("src/client/algebra/Sound");
 
 let Drop = require("src/client/algebra/Drop");
 let Ten24 = require("src/client/algebra/Ten24");
@@ -43,6 +44,12 @@ window.globals = { };
 
 let renderer;
 
+setTimeout(function() {
+    Sound.playMusic("sound");
+    Sound.play("click");
+    Sound.play("monster");
+}, 1000);
+
 async function setup() {
     let v = Vec.new({x: 10, y: 20});
     v.norm();
@@ -54,17 +61,20 @@ async function setup() {
     Backgrounds.loadTextures(PIXI.loader);
     GridTiles.loadTextures(PIXI.loader);
 
-
     renderer = PIXI.autoDetectRenderer({
         width: 640,
         height: 480,
         forceFXAA: true,
     });
     G.renderer = renderer;
+    renderer.view.style.width = "90%";
 
     renderer.view.onmousedown = e => e.preventDefault();
     document.body.querySelector("div.game").appendChild(renderer.view);
     window.addEventListener("keydown", e => {
+        if (e.key == "l" && e.ctrlKey) {
+            window.location.reload();
+        }
         if (e.key == "F5" || e.keyCode == 116) {
             window.location.reload();
         }
@@ -80,16 +90,26 @@ async function setup() {
         .add("equals", "static/images/equals.png")
         .add("cat", "static/images/cat.png")
         .add("blob", "static/images/blob.png")
+
+        .add("menu", "static/images/menu.png")
+        .add("help", "static/images/help.png")
+        .add("soundon", "static/images/gui/transparentLight/transparentLight11.png")
+        .add("soundoff", "static/images/gui/transparentLight/transparentLight13.png")
+        .add("left", "static/images/gui/transparentLight/transparentLight22.png")
+        .add("right", "static/images/gui/transparentLight/transparentLight23.png")
+        .add("close", "static/images/gui/transparentLight/transparentLight33.png")
+
         .add("static/images/cake.png")
         .add("static/images/konett.png")
-        .add("static/images/menu.png")
 
-        .add("static/images/racoon.jpg")
+        .add("racoon", "static/images/racoon.jpg")
         .add("static/images/armadillo.jpg")
         .add("static/images/hare.jpg")
 
         .add("static/images/sharm/tiles.png")
         .add("static/images/sharm/characters.png")
+
+        .add("static/images/drop1.png")
 
         .load(main);
 }
@@ -178,7 +198,7 @@ function main() {
         h: _=> gameStage.moveBy({x:  step, y: 0}),
         l: _=> gameStage.moveBy({x: -step, y: 0}),
     });
-    //kmap.listen();
+
 
     // fix texture bleed
     for (let rsrc  of Object.values(resources)) {
@@ -1333,7 +1353,3 @@ module.exports = {
     setup,
     globals,
 }
-
-
-
-

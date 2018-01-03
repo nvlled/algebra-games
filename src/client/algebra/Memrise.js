@@ -14,6 +14,15 @@ let SlideContent = require("src/client/algebra/SlideContent");
 let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 let GraphicTable = require("src/client/algebra/GraphicTable");
 let Layout = require("src/client/algebra/Layout");
+let Bouton = require("src/client/algebra/Bouton");
+let Table = require("src/client/algebra/Table");
+let TextProp = require("src/client/algebra/TextProp");
+let InputDialog = require("src/client/algebra/InputDialog");
+let Highscore = require("src/client/algebra/Highscore");
+let HighscoreDialog = require("src/client/algebra/HighscoreDialog");
+let PixiUtil = require("src/client/algebra/PixiUtil");
+let UI  = require("src/client/algebra/UI");
+let SlideDialog  = require("src/client/algebra/SlideDialog");
 
 let Rsrc = require("src/client/algebra/Rsrc");
 let Backgrounds = require("src/client/algebra/Backgrounds");
@@ -36,6 +45,12 @@ let GridTiles = require("src/client/algebra/GridTiles");
 // d e 3
 // ahahah this is fucking too hard
 // or is it?
+
+function formatTime(diff) {
+    let mins = Util.leftpad(diff.getMinutes(), 2, "0");
+    let secs = Util.leftpad(diff.getSeconds(), 2, "0");
+    return `${mins}:${secs}`;
+}
 
 let createTable = size => {
     let zVals = Util.nums.split("")
@@ -98,8 +113,13 @@ let M = {
         gameStage.setBackground(images.background);
 
         let tileMap = _ => PIXI.Texture.from(images.tile);
-
+        let highscore = Highscore.new({
+            name: "memrise",
+            length: 5,
+            desc: false,
+        });
         let self = {
+            highscore,
             gridArgs: {
                 x, y, rows: 3, cols: 3, tileSize, tileSpace, tileMap,
                 speed, stretch, interactive, alpha,
@@ -201,6 +221,7 @@ let M = {
                 let params = shownTiles.map(pos => algebra.getElem(grid.spriteAt(pos)));
                 let z = algebra.apply(...params);
 
+                let score = M.getScore(self);
                 await Util.sleep(700);
                 if (z == null) {
                     await Promise.all(shownTiles.map(pos => hideTile(pos)));
@@ -211,9 +232,10 @@ let M = {
                     });
                     let len = Object.keys(indices).length;
                     if (len == self.boardSize) {
-                        await Util.sleep(1000);
-                        M.createWinGame(self);
-                    }
+                        self.loop.stop();
+                        await Util.sleep(900);
+                        M.createWinGame(self, score);
+                    } 
                 }
                 shownTiles.splice(0);
                 checking = false;
@@ -222,13 +244,28 @@ let M = {
 
     },
 
-    createWinGame(self) {
+    getScore(self) {
+        let d = new Date() - self.startTime;
+        return d;
+    },
+
+    createWinGame(self, score) {
+        console.log("score:", score);
+        let message = "puzzle complete";
+        if (score > 0 && self.highscore.isHighscore(score)) {
+            self.highscore.addEntry({
+                score, 
+                time: formatTime(new Date(score)),
+            });
+            message = "tadah";
+        }
+
         let {gameStage} = self;
         gameStage.createMenu({
-            title: "You win....",
+            title: message,
             showBg: false,
             textStyle: {
-                fill: 0x000088,
+                fill: 0x0000ff,
                 fontSize: 50,
             },
             onShow: ()=> {
@@ -276,6 +313,55 @@ let M = {
             self.grid.hightlightTiles(col, 0xff8888);
     },
 
+    setupHelpDialog(self) {
+        let {gameStage} = self;
+        gameStage.showHelp = () => {
+            gameStage.hideMenuBar();
+            M.pause(self);
+            let ui = UI.new();
+            let {
+                img,
+                fill, size, map, center, centerX, left, top, right, bottom,
+                row, col, textBig, text, textSmall, minWidth, fillX,
+                and, btn,slide, root, btnImg,
+            } = ui.funcs();
+
+            let path = "static/images/help/memrise/";
+            let videoSize = {
+                width: 220,
+                height: 150,
+            }
+            let videos = {
+                "gameplay": PixiUtil.loadVideo(path+"gameplay.mp4", videoSize),
+            }
+            let slideDialog = SlideDialog.new({
+                title: "Help",
+                items: [
+                    ui.build(_=> row(
+                        videos.gameplay,
+                        text(`
+                            |Gameplay:
+                            |Click on a hidden tile to reveal
+                            |its contents. Click two tiles
+                            |in succession to test if
+                            |they are a valid combination.
+                            |The valid combinations are
+                            |indicated on the left.
+                            `),
+                    )),
+                ],
+                closed: () => {
+                    M.resume(self);
+                    for (let [_, vid] of Object.entries(videos))
+                        vid.destroy(true);
+                    gameStage.showMenuBar();
+                }
+            });
+            gameStage.addUI(slideDialog);
+            Table.Align.center(slideDialog);
+            Anima.fade(slideDialog, {start: 0, end: 1});
+        }
+    },
     newGame(self, size=4) {
         let {gameStage} = self;
         self.gridArgs.rows = size;
@@ -309,8 +395,30 @@ let M = {
         });
         self.gameStage.add(table.grid);
         Layout.leftOf({
-            marginX: 10,
         }, self.grid, table.grid);
+
+        M.setupTextScore(self);
+        self.loop = Util.loop(_=> {
+            self.textScore.value = +new Date();
+        });
+        M.setupTextScore(self);
+        M.setupHelpDialog(self);
+    },
+
+    setupTextScore(self) {
+        self.startTime = +new Date();
+        let text = TextProp.new({
+            label: "",
+            val: +new Date(),
+            format: val => formatTime(new Date(val - self.startTime)),
+        });
+        self.grid.addChild(text);
+        let fn = Table.Align.funcs;
+        Table.Align.apply(text, self.grid, Util.compose(
+            fn.right,
+            fn.bottom,
+        ), {outsideY: true, isContained: true});
+        self.textScore = text;
     },
 
     start(self) {
@@ -331,29 +439,28 @@ let M = {
         }, {
             "New Game": ()=>{
                 gameStage.showMenuBar();
-                M.newGame(self, Util.randomInt(3, 4));
+                //M.newGame(self, Util.randomInt(3, 4));
+                M.newGame(self, 4);
             },
-            "Help": ()=>{
+            "Highscore": ()=>{
                 Anima.slideOut(menu, {fade: 1});
-                SlideContent.dialog({
-                    title: "Help",
-                    content: [
-                        "Controls:",
-                        " * Click or touch the tiles to reveal them",
-                        "",
-                        "Gameplay:",
-                        " Find all the matching pairs in the grid, where the match is defined in the table."
-                    ].join("\n"),
-                    buttons: {
-                        ["close"]: async dialog => {
+                let hsdialog = HighscoreDialog.new({
+                    excl: {"score":true},
+                    data: self.highscore.data,
+                    button: {
+                        fontSize: 18,
+                        text: "back",
+                        tap: async () => {
                             Layout.center({}, menu);
                             Anima.slideIn(menu, {fade: 1});
-                            await Anima.slideOut(dialog, {fade: 1});
-                            dialog.destroy(true);
+                            await Anima.slideOut(hsdialog, {fade: 1});
+                            hsdialog.destroy(true);
                         },
                     },
-                    parent: gameStage.ui,
                 });
+                Anima.fade(hsdialog, {end: 1, start: 0});
+                gameStage.add(hsdialog);
+                Table.Align.center(hsdialog);
             },
             "Exit": ()=>{
                 gameStage.exitModule();
@@ -389,10 +496,17 @@ let M = {
     },
 
     stop(self) {
+        if (self.loop)
+            self.loop.stop();
+        if (self.textScore) {
+            self.textScore.destroy();
+            self.textScore = null;
+        }
         if (self.grid)
             self.grid.destroy({children: true});
         if (self.table)
             self.table.grid.destroy({children: true});
+
         M.unlistenKeys(self);
         self.actions.stop();
     },

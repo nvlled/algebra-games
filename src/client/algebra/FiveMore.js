@@ -16,6 +16,14 @@ let Button = require("src/client/algebra/Button");
 let SlideContent = require("src/client/algebra/SlideContent");
 let SetUtil = require("src/client/algebra/SetUtil");
 let PixiUtil = require("src/client/algebra/PixiUtil");
+let Bouton = require("src/client/algebra/Bouton");
+let Table = require("src/client/algebra/Table");
+let TextProp = require("src/client/algebra/TextProp");
+let InputDialog = require("src/client/algebra/InputDialog");
+let Highscore = require("src/client/algebra/Highscore");
+let HighscoreDialog = require("src/client/algebra/HighscoreDialog");
+let UI  = require("src/client/algebra/UI");
+let SlideDialog  = require("src/client/algebra/SlideDialog");
 
 let CoinSprites = require("src/client/algebra/CoinSprites");
 let Backgrounds = require("src/client/algebra/Backgrounds");
@@ -46,8 +54,8 @@ let M = {
         resources,
         rows=8,
         cols=8,
-        tileSize=50,
-        tileSpace=3,
+        tileSize=45,
+        tileSpace=2,
         alpha=0.2,
         x, y,
         speed=200,
@@ -73,8 +81,13 @@ let M = {
         });
 
         let tileMap = _ => PIXI.Texture.from(images.tile);
+        let highscore = Highscore.new({
+            name: "fivemore",
+            length: 5,
+        });
 
         let self = {
+            highscore,
             gameStage,
             resources,
             gridArgs: {
@@ -158,12 +171,18 @@ let M = {
                             if (points) {
                                 points.push(Util.last(path));
                                 M.findMatches(self, points);
-                            }
+                            } 
                             if (self.grid.isFull()) {
                                 grid.eachSprite(s => {
                                     Anima.shake(s);
                                 });
                                 await Util.sleep(1000);
+                                let score = self.textScore.value;
+                                if (score > 0 && self.highscore.isHighscore(score)) {
+                                    self.highscore.addEntry({
+                                        score, 
+                                    });
+                                }
                                 M.createGameOverMenu(self);
                             }
                         } 
@@ -186,6 +205,7 @@ let M = {
             let lines = M.findValidLines(self, p);
             for (let line of lines) {
                 for (let s of line) {
+                    self.textScore.value++;
                     Anima.fade(s, {end: 0})
                         .then(_=> {
                             self.grid.removeSprite(s, true);
@@ -328,6 +348,67 @@ let M = {
             self.grid.hightlightTiles(col, 0xff0000); 
     },
 
+    setupHelpDialog(self) {
+        let {gameStage} = self;
+        gameStage.showHelp = () => {
+            gameStage.hideMenuBar();
+            M.pause(self);
+            let ui = UI.new();
+            let {
+                img,
+                fill, size, map, center, centerX, left, top, right, bottom,
+                row, col, textBig, text, textSmall, minWidth, fillX,
+                and, btn,slide, root, btnImg,
+            } = ui.funcs();
+
+            let path = "static/images/help/fivemore/";
+            let videoSize = {
+                width: 220,
+                height: 150,
+            }
+            let videos = {
+                "gameplay": PixiUtil.loadVideo(path+"gameplay.mp4", videoSize),
+                "gameover": PixiUtil.loadVideo(path+"gameover.mp4", videoSize),
+            }
+            let slideDialog = SlideDialog.new({
+                title: "Help",
+                items: [
+                    ui.build(_=> row(
+                        videos.gameplay,
+                        text(`
+                            |Controls:
+                            |First, click on a character to
+                            |select them. Then click on an empty
+                            |tile to make them move to that tile.
+                            |If the tile is not reachable, then
+                            |the selected character does not move.
+                            `),
+                    )),
+                    ui.build(_=> row(
+                        videos.gameover,
+                        text(`
+                            |Gameplay:
+                            |Clear the tiles and make a score
+                            |by aligning five or more similar 
+                            |characters in a row or column.
+                            |The game ends when all the
+                            |tiles are occupied.
+                            `),
+                    )),
+                ],
+                closed: () => {
+                    M.resume(self);
+                    for (let [_, vid] of Object.entries(videos))
+                        vid.destroy(true);
+                    gameStage.showMenuBar();
+                }
+            });
+            gameStage.addUI(slideDialog);
+            Table.Align.center(slideDialog);
+            Anima.fade(slideDialog, {start: 0, end: 1});
+        }
+    },
+
     newGame(self, level=0) {
         self.grid.toggleInteractive(true);
         self.grid.visible = true;
@@ -336,6 +417,22 @@ let M = {
         self.gameStage.showMenuBar();
         self.actions.start();
         M.createPlayMenu(self);
+        M.setupTextScore(self);
+        M.setupHelpDialog(self);
+    },
+
+    setupTextScore(self) {
+        let fn = Table.Align.funcs;
+        let text = TextProp.new({
+            label: "score",
+            val: 0,
+        });
+        self.gameStage.addChild(text);
+        Table.Align.apply(text, self.grid, Util.compose(
+            fn.left,
+            fn.bottom,
+        ), {outsideY: true});
+        self.textScore = text;
     },
 
     start(self) {
@@ -357,6 +454,10 @@ let M = {
     },
 
     stop(self) {
+        if (self.textScore) {
+            self.textScore.destroy();
+            self.textScore = null;
+        }
         M.unlistenKeys(self);
         if (self.grid)
             self.grid.destroy({children: true});
@@ -382,27 +483,24 @@ let M = {
                 gameStage.showMenuBar();
                 M.newGame(self);
             },
-            "Help": ()=>{
+            "Highscore": ()=>{
                 Anima.slideOut(menu, {fade: 1});
-                SlideContent.dialog({
-                    title: "Help",
-                    content: [
-                        "Controls:",
-                        " * Click/touch an item, then click an empty tile to move.",
-                        "",
-                        "Gameplay:",
-                        " Move items such that five or more of them line up."
-                    ].join("\n"),
-                    buttons: {
-                        ["close"]: async dialog => {
+                let hsdialog = HighscoreDialog.new({
+                    data: self.highscore.data,
+                    button: {
+                        fontSize: 18,
+                        text: "back",
+                        tap: async () => {
                             Layout.center({}, menu);
                             Anima.slideIn(menu, {fade: 1});
-                            await Anima.slideOut(dialog, {fade: 1});
-                            dialog.destroy(true);
+                            await Anima.slideOut(hsdialog, {fade: 1});
+                            hsdialog.destroy(true);
                         },
                     },
-                    parent: gameStage.ui,
                 });
+                Anima.fade(hsdialog, {end: 1, start: 0});
+                gameStage.add(hsdialog);
+                Table.Align.center(hsdialog);
             },
             "Exit": ()=>{
                 gameStage.exitModule();

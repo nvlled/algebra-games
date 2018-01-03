@@ -25,6 +25,7 @@ let M = {
 
         fgStyle={},
         bgStyle={},
+        pressDelay=500,
 
     }) {
         let self = {};
@@ -112,6 +113,8 @@ let M = {
         rect.interactive = true;
         rect.buttonMode = true;
 
+        let lastClick = 0;
+        self.pressDelay = pressDelay;
         rect.on("pointerover", () => {
             hovered = true;
             buttonText.style.fill = fgStyle.hover;
@@ -125,12 +128,16 @@ let M = {
             drawRect("normal");
         });
         rect.on("pointerdown", () => {
+            if ((new Date() - lastClick) < self.pressDelay)
+                return;
             container.pointerdown(text, self);
             buttonText.style.fill = fgStyle.click;
             bgImage.tint = fgStyle.click;
             drawRect("click");
         });
         rect.on("pointerup", () => {
+            if ((new Date() - lastClick) < self.pressDelay)
+                return;
             container.pointerup(text, self);
 
             bgImage.tint = fgStyle.normal;
@@ -142,6 +149,7 @@ let M = {
                 drawRect("normal");
             }
             Sound.play("click");
+            lastClick = new Date();
         });
         container.setSize = function(args) {
             if (args.width)

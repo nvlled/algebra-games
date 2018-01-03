@@ -4,18 +4,22 @@ let GraphicAlgebra = require("src/client/algebra/GraphicAlgebra");
 
 let M = {
     create(graphicAlgebra, args) {
+        let hideLastCol = args.hideLastCol;
+
         let {rows, cols} = graphicAlgebra.getSize();
         let {algebra} = graphicAlgebra;
         args.cols = cols;
         args.rows = rows;
 
-        if (graphicAlgebra.getTexture("equals"))
+        if (hideLastCol)
+            args.cols--;
+        else if (graphicAlgebra.getTexture("equals"))
             args.cols++;
         let grid = Grid.new(args);
 
         grid.eachRowIndex(y => {
             let row = algebra.table[y].slice();
-            if (args.hideLastCol)
+            if (hideLastCol)
                 row.pop();
             else if (row.length < args.cols) {
                 let z = row.pop();

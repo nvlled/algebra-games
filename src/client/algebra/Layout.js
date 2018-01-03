@@ -335,5 +335,29 @@ let M = {
 
         return container;
     },
+
+    //table({
+    //  margin:20
+    //  align: center,
+    //}, ({span, rowspan, colspan, empty, center, left, right}) => {
+    //      return [
+    //          center([rowspan(x, 2), y, right(z)]),
+    //          [empty,         a, b],
+    //          [span(w, 2,3)       ]
+    //      ]
+    //});
+    //
+    //align({x: 1, y: 0}, elem) == centerY(right(elem)) == right(centerY(elem))
+    //  -> { obj: elem, x: 1, y: 0}
+    //
+    // applyAlign({
+    //      outbounds: true,
+    //      x: 123,
+    //      y: 456,
+    //      width: 500,
+    //      height: 500,
+    // }, {obj: elem, x: 1, y: 0}) 
+
 }
 module.exports = M;
+

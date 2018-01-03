@@ -17,7 +17,15 @@ let SetUtil = require("src/client/algebra/SetUtil");
 let SlideContent = require("src/client/algebra/SlideContent");
 let TextureSet = require("src/client/algebra/TextureSet");
 let PixiUtil = require("src/client/algebra/PixiUtil");
+let Bouton = require("src/client/algebra/Bouton");
+let Table = require("src/client/algebra/Table");
+let TextProp = require("src/client/algebra/TextProp");
+let InputDialog = require("src/client/algebra/InputDialog");
+let Highscore = require("src/client/algebra/Highscore");
+let HighscoreDialog = require("src/client/algebra/HighscoreDialog");
 let Sound = require("src/client/algebra/Sound");
+let UI  = require("src/client/algebra/UI");
+let SlideDialog  = require("src/client/algebra/SlideDialog");
 
 let CoinSprites = require("src/client/algebra/CoinSprites");
 let Backgrounds = require("src/client/algebra/Backgrounds");
@@ -47,9 +55,9 @@ let M = {
     create({
         gameStage,
         resources,
-        rows=3,
-        cols=3,
-        tileSize=100,
+        rows=4,
+        cols=4,
+        tileSize=95,
         tileSpace=0,
         x, y,
         seconds=0.3,
@@ -75,8 +83,13 @@ let M = {
         });
 
         let tileMap = _ => PIXI.Texture.from(images.tile);
+        let highscore = Highscore.new({
+            name: "slider",
+            length: 5,
+        });
 
         let self = {
+            highscore,
             gameStage,
             resources,
             gridArgs: {
@@ -140,6 +153,7 @@ let M = {
                 await grid.move({src: pos, dest: pos_, force: true, apply: true});
             }
             Sound.play("click");
+            self.textScore.value++;
             if (M.isComplete(self)) {
                 console.log("done");
                 M.createWinGame(self);
@@ -188,6 +202,7 @@ let M = {
             grid.move({src: pos_, dest: pos, force: true, apply: true});
             await grid.move({src: pos, dest: pos_, force: true, apply: true});
 
+            self.textScore.value++;
             if (M.isComplete(self)) {
                 console.log("done");
                 M.createWinGame(self);
@@ -197,6 +212,13 @@ let M = {
     },
 
     createWinGame(self) {
+        let score = self.textScore.value;
+        if (score > 0 && self.highscore.isHighscore(score)) {
+            self.highscore.addEntry({
+                score, 
+            });
+        }
+
         let {gameStage} = self;
         gameStage.createMenu({
             title: "Puzzle complete",
@@ -310,6 +332,57 @@ let M = {
             self.grid.hightlightTiles(col, 0xff0000); 
     },
 
+    setupHelpDialog(self) {
+        let {gameStage} = self;
+        gameStage.showHelp = () => {
+            gameStage.hideMenuBar();
+            self.textScore.visible = false;
+            M.pause(self);
+            let ui = UI.new();
+            let {
+                img,
+                fill, size, map, center, centerX, left, top, right, bottom,
+                row, col, textBig, text, textSmall, minWidth, fillX,
+                and, btn,slide, root, btnImg,
+            } = ui.funcs();
+
+            let path = "static/images/help/slider/";
+            let videoSize = {
+                width: 220,
+                height: 150,
+            }
+            let videos = {
+                "gameplay": PixiUtil.loadVideo(path+"gameplay.mp4", videoSize),
+            }
+            let slideDialog = SlideDialog.new({
+                title: "Help",
+                items: [
+                    ui.build(_=> row(
+                        videos.gameplay,
+                        text(`
+                            |Gameplay:
+                            |Drag a tile into the empty slot
+                            |to move it. Or, click a tile
+                            |adjacent to the empty slot to move.
+                            |The goal is to complete the jumbled
+                            |image.
+                            `),
+                    )),
+                ],
+                closed: () => {
+                    M.resume(self);
+                    for (let [_, vid] of Object.entries(videos))
+                        vid.destroy(true);
+                    gameStage.showMenuBar();
+                    self.textScore.visible = true;
+                }
+            });
+            gameStage.addUI(slideDialog);
+            Table.Align.center(slideDialog);
+            Anima.fade(slideDialog, {start: 0, end: 1});
+        }
+    },
+
     async newGame(self) {
         let grid = self.grid = Grid.new(self.gridArgs);
         let {rows, cols} = self.grid;
@@ -325,7 +398,7 @@ let M = {
         await M.shuffle(self);
         await M.selectBlankTile(self);
 
-        let btn = Button.new({
+        let btn = Bouton.new({
             text: "shuffle",
             pointerup: async () => {
                 btn.visible = false;
@@ -338,6 +411,22 @@ let M = {
 
         M.handleInput(self);
         self.actions.start();
+        M.setupTextScore(self);
+        M.setupHelpDialog(self);
+    },
+
+    setupTextScore(self) {
+        let fn = Table.Align.funcs;
+        let text = TextProp.new({
+            label: "moves",
+            val: 0,
+        });
+        self.gameStage.addChild(text);
+        Table.Align.apply(text, self.grid, Util.compose(
+            fn.right,
+            fn.bottom,
+        ), {outsideY: true});
+        self.textScore = text;
     },
 
     async swap(self, pos1, pos2) {
@@ -371,6 +460,10 @@ let M = {
     },
 
     stop(self) {
+        if (self.textScore) {
+            self.textScore.destroy();
+            self.textScore = null;
+        }
         M.unlistenKeys(self);
         if (self.grid)
             self.grid.destroy(false);
@@ -393,27 +486,24 @@ let M = {
                 gameStage.showMenuBar();
                 M.newGame(self);
             },
-            "Help": ()=>{
+            "Highscore": ()=>{
                 Anima.slideOut(menu, {fade: 1});
-                SlideContent.dialog({
-                    title: "Help",
-                    content: [
-                        "Controls:",
-                        " * Click on the tiles near the empty one to move.",
-                        "",
-                        "Gameplay:",
-                        " Arrange the image by moving the empty tile."
-                    ].join("\n"),
-                    buttons: {
-                        ["close"]: async dialog => {
+                let hsdialog = HighscoreDialog.new({
+                    data: self.highscore.data,
+                    button: {
+                        fontSize: 18,
+                        text: "back",
+                        tap: async () => {
                             Layout.center({}, menu);
                             Anima.slideIn(menu, {fade: 1});
-                            await Anima.slideOut(dialog, {fade: 1});
-                            dialog.destroy(true);
+                            await Anima.slideOut(hsdialog, {fade: 1});
+                            hsdialog.destroy(true);
                         },
                     },
-                    parent: gameStage.ui,
                 });
+                Anima.fade(hsdialog, {end: 1, start: 0});
+                gameStage.add(hsdialog);
+                Table.Align.center(hsdialog);
             },
             "Exit": ()=>{
                 gameStage.exitModule();

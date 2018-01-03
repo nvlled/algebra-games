@@ -1,7 +1,8 @@
 let PIXI = require("src/client/pixi");
 let Util = require("src/client/algebra/Util");
 let Anima = require("src/client/algebra/Anima");
-let Button = require("src/client/algebra/Button");
+let Bouton = require("src/client/algebra/Bouton");
+let Table = require("src/client/algebra/Table");
 let PixiUtil = require("src/client/algebra/PixiUtil");
 let Layout = require("src/client/algebra/Layout");
 let Menu = require("src/client/algebra/Menu");
@@ -57,6 +58,7 @@ let M = {
 
         self.menu = null;
         self.modules = [];
+        self.showHelp = () => {};
 
         return self;
     },
@@ -151,28 +153,61 @@ let M = {
                 //console.log("X");
             },
         });
-        btn.x = 0;
-        btn.y = 0;
-        btn.pointerup = _=> {
-            M.showMenu(self);
-        };
-        Layout.row(
-            { container: menuBar,
-                stretch: false,
-             margin: 5},
-            btn);
+
+        let menuBar = Table.row({margin: 15}, 
+            [btnMenu, btnHelp, btnSound]);
+        menuBar.border.width = self.world.width;
+
+        //let btn = Bouton.new({
+        //    color: 0xffff00,
+        //    image: "static/images/gui/transparentLight/transparentLight31.png",
+        //    fitImage: true,
+        //    width: 45,
+        //    height: 45,
+        //    alpha: 0,
+        //    color: 0x0000dd,
+        //    alpha: 1.0,
+        //    width: 25,
+        //    height: 25,
+        //    image: "menu",
+        //    bgcolor: 0xffff00,
+        //    bgcolor2: 0x33aa33,
+        //    bgalpha: 0,
+        //    bgalpha2: 9,
+        //    //toggle: true,
+        //    tap() {
+        //    },
+        //});
+        //btn.scale.set(0.5);
+        //let menuBar = PixiUtil.roundedRect({
+        //    color: 0x222222,
+        //    width: self.world.width, height: 30, alpha: 0.4,
+        //    x: 0,
+        //    y: 0,
+        //    radius: 0,
+        //});
+        //btn.x = 0;
+        //btn.y = 0;
+        //btn.pointerup = _=> {
+        //    M.showMenu(self);
+        //};
+        //Layout.row(
+        //    { container: menuBar,
+        //        stretch: false,
+        //     margin: 5},
+        //    btn);
         self.menuBar = menuBar;
         M.addUI(self, menuBar);
-        Layout.center({
-            y: 0,
-        }, self.menuBar);
     },
 
     showMenuBar(self, animate=true) {
         let {menuBar} = self;
         menuBar.visible = true;
         if (animate) {
-            return Anima.move(menuBar, {start: {y: -menuBar.height, x: 0}, end: 0});
+            return Anima.move(menuBar, {
+                start: {y: -menuBar.height}, 
+                end: {x: menuBar.marginX/2, y: menuBar.marginY/2},
+            });
         }
     },
 
@@ -181,8 +216,8 @@ let M = {
         if (animate) {
             return Anima.move(menuBar, 
                        { 
-                           end: {y: -menuBar.height, x: 0},
-                           start: 0, 
+                           end: {y: -menuBar.height},
+                           start: {x: menuBar.marginX/2, y: menuBar.marginY/2}, 
                            seconds: 0.5,
                        })
                  .then(_=> menuBar.visible = false);

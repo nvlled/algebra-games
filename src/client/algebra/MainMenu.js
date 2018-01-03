@@ -19,6 +19,7 @@ let Layout = require("src/client/algebra/Layout");
 let Rsrc = require("src/client/algebra/Rsrc");
 let Menu = require("src/client/algebra/Menu");
 let Backgrounds = require("src/client/algebra/Backgrounds");
+let Sound = require("src/client/algebra/Sound");
 
 let images = {
     background: Backgrounds.fullpath("starfield2.jpg"),
@@ -62,7 +63,7 @@ let M = {
         });
         grid.setInteractive();
         grid.visible = false;
-        
+
         let self = {
             gameStage,
             resources,
@@ -125,6 +126,10 @@ let M = {
     },
 
     async resume(self) {
+        setTimeout(function() {
+            Sound.playMusic("flew");
+        }, 1000);
+
         window.location.hash = "";
         let {gameStage} = self;
         await gameStage.hideMenu({showMenuBar: false});
